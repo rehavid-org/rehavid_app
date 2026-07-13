@@ -1,0 +1,65 @@
+{
+  "niveles": {
+    "1": {
+      "nombre": "Admin Global",
+      "badge": "A",
+      "color": "var(--brand-dark)"
+    },
+    "2": {
+      "nombre": "Operador",
+      "badge": "O",
+      "color": "var(--brand)"
+    },
+    "3": {
+      "nombre": "Coordinador Programación",
+      "badge": "C",
+      "color": "var(--green-dark)"
+    },
+    "4": {
+      "nombre": "Solicitante",
+      "badge": "S",
+      "color": "var(--brand-light)"
+    }
+  },
+  "menu_by_level": {
+    "1": [
+      "brief",
+      "dashboard",
+      "predictivo",
+      "recos",
+      "planes",
+      "reservas",
+      "equipos",
+      "paquetes",
+      "calendario",
+      "alertas",
+      "admin",
+      "auditoria",
+      "arquitectura"
+    ],
+    "2": [
+      "brief",
+      "dashboard",
+      "predictivo",
+      "recos",
+      "planes",
+      "reservas",
+      "equipos",
+      "paquetes",
+      "calendario",
+      "alertas"
+    ],
+    "3": [
+      "calendario",
+      "equipos",
+      "paquetes"
+    ],
+    "4": [
+      "portal-solicitante",
+      "calendario",
+      "equipos-disp",
+      "solicitar",
+      "mis-solicitudes"
+    ]
+  }
+}

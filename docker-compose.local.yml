@@ -1,0 +1,72 @@
+volumes:
+  rehavid_app_local_postgres_data: {}
+  rehavid_app_local_postgres_data_backups: {}
+  rehavid_app_local_redis_data: {}
+
+services:
+  django: &django
+    build:
+      context: .
+      dockerfile: ./compose/local/django/Dockerfile
+    image: rehavid_app_local_django
+    container_name: rehavid_app_local_django
+    depends_on:
+      - postgres
+      - redis
+      - mailpit
+    volumes:
+      - .:/app:z
+    env_file:
+      - ./.envs/.local/.django
+      - ./.envs/.local/.postgres
+    ports:
+      - '8000:8000'
+    command: /start
+
+  postgres:
+    build:
+      context: .
+      dockerfile: ./compose/local/postgres/Dockerfile
+    image: rehavid_app_local_postgres
+    container_name: rehavid_app_local_postgres
+    volumes:
+      - rehavid_app_local_postgres_data:/var/lib/postgresql/data
+      - rehavid_app_local_postgres_data_backups:/backups
+    env_file:
+      - ./.envs/.local/.postgres
+    ports:
+      - '5432:5432'
+
+  redis:
+    image: docker.io/redis:7
+    container_name: rehavid_app_local_redis
+    volumes:
+      - rehavid_app_local_redis_data:/data
+
+  mailpit:
+    image: docker.io/axllent/mailpit:latest
+    container_name: rehavid_app_local_mailpit
+    ports:
+      - '8025:8025'
+
+  celeryworker:
+    <<: *django
+    image: rehavid_app_local_celeryworker
+    container_name: rehavid_app_local_celeryworker
+    depends_on:
+      - redis
+      - postgres
+      - mailpit
+    ports: []
+    command: /start-celeryworker
+
+  celerybeat:
+    <<: *django
+    image: rehavid_app_local_celerybeat
+    container_name: rehavid_app_local_celerybeat
+    depends_on:
+      - redis
+      - postgres
+      - mailpit
+    ports: []
+    command: /start-celerybeat

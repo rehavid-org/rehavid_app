@@ -1,0 +1,7 @@
+# PostgreSQL
+# ------------------------------------------------------------------------------
+POSTGRES_HOST=postgres
+POSTGRES_PORT=5432
+POSTGRES_DB=rehavid_app
+POSTGRES_USER=FiimRzlQPmnciFDEvYpTlYPqlOHKxgBY
+POSTGRES_PASSWORD=sXTy53towsjmKQfe50HdVat0j8LMncbn4vIuxMjYSMiw523tbkrq6x3SdDGZGN7C

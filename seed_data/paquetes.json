@@ -1,0 +1,61 @@
+[
+  {
+    "id": "PKG-01",
+    "nombre": "Pack Ergonomía Avanzada",
+    "desc": "Evaluación ergonómica completa con cinemática 3D + activación muscular",
+    "equipos_requeridos": [
+      "Xsens",
+      "EMG"
+    ],
+    "duracion_dias": 3,
+    "activo": true,
+    "uso_30d": 4
+  },
+  {
+    "id": "PKG-02",
+    "nombre": "Pack Ojo + Cuerpo",
+    "desc": "Evaluación postural con seguimiento ocular para tareas de pantalla",
+    "equipos_requeridos": [
+      "Xsens",
+      "Tobii"
+    ],
+    "duracion_dias": 2,
+    "activo": true,
+    "uso_30d": 1
+  },
+  {
+    "id": "PKG-03",
+    "nombre": "Pack Fuerza Manual",
+    "desc": "Medición de fuerza prensil y producción de lactato para tareas físicas",
+    "equipos_requeridos": [
+      "Dinamómetro",
+      "Lactómetro"
+    ],
+    "duracion_dias": 1,
+    "activo": true,
+    "uso_30d": 2
+  },
+  {
+    "id": "PKG-04",
+    "nombre": "Pack Inspección Aérea",
+    "desc": "Reconocimiento de instalaciones desde dron + Tobii para análisis posterior",
+    "equipos_requeridos": [
+      "Dron",
+      "Tobii"
+    ],
+    "duracion_dias": 1,
+    "activo": true,
+    "uso_30d": 0
+  },
+  {
+    "id": "PKG-05",
+    "nombre": "Pack Registro Visual",
+    "desc": "Registro de tareas con GoPro para análisis posterior de movimientos",
+    "equipos_requeridos": [
+      "GoPro"
+    ],
+    "duracion_dias": 2,
+    "activo": true,
+    "uso_30d": 3
+  }
+]

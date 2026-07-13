@@ -1,0 +1,101 @@
+[
+  {
+    "id": "PA-001",
+    "app": "Operaciones · Reservas",
+    "titulo": "Protocolo de retorno temprano · 3 reservas en riesgo",
+    "desc": "Activar contacto 48h antes del retorno esperado para Ingenio Pichichi, Brilladora El Diamante y Linea Directa. Acuerdo de penalización si retraso >2 días.",
+    "responsable": "Ariel Ramírez",
+    "vence": "2026-05-27",
+    "avance": 25,
+    "esperado": 70,
+    "estado": "risk"
+  },
+  {
+    "id": "PA-002",
+    "app": "Operaciones · Predictivo",
+    "titulo": "Pre-tamizaje El Retiro con cuestionario nórdico",
+    "desc": "Aplicar cuestionario nórdico estandarizado antes del despacho a Urabá. Reduce tiempo en campo y eleva calidad del estudio.",
+    "responsable": "Danna Villarraga",
+    "vence": "2026-06-03",
+    "avance": 60,
+    "esperado": 50,
+    "estado": "open"
+  },
+  {
+    "id": "PA-003",
+    "app": "Operaciones · Comercial",
+    "titulo": "Programa preventivo a clientes P75+",
+    "desc": "Generar propuesta comercial específica para los 4 clientes que cruzan umbral de carga ergonómica P75. Ticket promedio estimado USD 4.200.",
+    "responsable": "Jeisson Mayorga",
+    "vence": "2026-06-10",
+    "avance": 40,
+    "esperado": 35,
+    "estado": "open"
+  },
+  {
+    "id": "PA-004",
+    "app": "Operaciones · Reservas",
+    "titulo": "Balancear capacidad Cali → Medellín/Bogotá",
+    "desc": "Redistribuir próximos contratos para descomprimir Equipo Cali en semanas 13 y 19. Coordinar con coordinadores regionales.",
+    "responsable": "Equipo Operaciones",
+    "vence": "2026-06-15",
+    "avance": 55,
+    "esperado": 50,
+    "estado": "open"
+  },
+  {
+    "id": "PA-005",
+    "app": "Operaciones · Predictivo",
+    "titulo": "Documentar protocolo Tumeke para sector confección",
+    "desc": "Documentar protocolo estándar para Mattelsa y replicar a 3 clientes similares: Tennis, Ura Industries, Linea Directa.",
+    "responsable": "Camila Restrepo",
+    "vence": "2026-06-20",
+    "avance": 70,
+    "esperado": 60,
+    "estado": "open"
+  },
+  {
+    "id": "PA-006",
+    "app": "Operaciones · Reservas",
+    "titulo": "Refuerzo Equipo Cali · contratista temporal",
+    "desc": "Contratar 1 técnico temporal por 6 semanas para descomprimir picos. Presupuesto USD 2.800.",
+    "responsable": "RRHH · Sergio Gómez",
+    "vence": "2026-05-27",
+    "avance": 10,
+    "esperado": 80,
+    "estado": "risk"
+  },
+  {
+    "id": "PA-007",
+    "app": "Operaciones · Comercial",
+    "titulo": "Captación nuevos clientes sector salud",
+    "desc": "Aprovechar relación con Imbanaco para acercarse a 3 clínicas del cluster Cali.",
+    "responsable": "Jeisson Mayorga",
+    "vence": "2026-07-01",
+    "avance": 30,
+    "esperado": 25,
+    "estado": "open"
+  },
+  {
+    "id": "PA-008",
+    "app": "Operaciones · Predictivo",
+    "titulo": "Validación cruzada modelo v0.4",
+    "desc": "Validar AUC del modelo de predicción de riesgo con base independiente (60 estudios reservados).",
+    "responsable": "Ariel Ramírez",
+    "vence": "2026-04-30",
+    "avance": 100,
+    "esperado": 100,
+    "estado": "done"
+  },
+  {
+    "id": "PA-009",
+    "app": "Operaciones · Reservas",
+    "titulo": "Migración Excel → app web · 28 reservas",
+    "desc": "Migración exitosa de las 28 reservas históricas del libro Excel a la maestra de la app.",
+    "responsable": "Danna Villarraga",
+    "vence": "2026-04-24",
+    "avance": 100,
+    "esperado": 100,
+    "estado": "done"
+  }
+]

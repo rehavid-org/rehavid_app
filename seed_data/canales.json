@@ -1,0 +1,17 @@
+{
+  "whatsapp": {
+    "activo": true,
+    "numero": "+57 320 555 1234",
+    "label": "WhatsApp Business"
+  },
+  "email": {
+    "activo": true,
+    "direccion": "logistica@rehavid.com.co",
+    "label": "Correo · logística"
+  },
+  "teams": {
+    "activo": false,
+    "canal": "Rehavid · Operaciones",
+    "label": "Microsoft Teams"
+  }
+}

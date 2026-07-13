@@ -1,0 +1,17 @@
+services:
+  docs:
+    image: rehavid_app_local_docs
+    container_name: rehavid_app_local_docs
+    build:
+      context: .
+      dockerfile: ./compose/local/docs/Dockerfile
+    env_file:
+      - ./.envs/.local/.django
+    volumes:
+      - /app/.venv
+      - ./docs:/docs:z
+      - ./config:/app/config:z
+      - ./rehavid_app:/app/rehavid_app:z
+    ports:
+      - '9000:9000'
+    command: /start-docs

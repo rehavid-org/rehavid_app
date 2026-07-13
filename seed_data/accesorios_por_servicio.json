@@ -1,0 +1,138 @@
+{
+  "Xsens": [
+    {
+      "nombre": "Sensores inerciales",
+      "cantidad_default": 17
+    },
+    {
+      "nombre": "Camisetas / traje",
+      "cantidad_default": 2
+    },
+    {
+      "nombre": "Estación base",
+      "cantidad_default": 1
+    },
+    {
+      "nombre": "Cables USB-C",
+      "cantidad_default": 2
+    },
+    {
+      "nombre": "Cargador múltiple",
+      "cantidad_default": 1
+    }
+  ],
+  "EMG": [
+    {
+      "nombre": "Sensores Trigno Avanti",
+      "cantidad_default": 8
+    },
+    {
+      "nombre": "Base inalámbrica",
+      "cantidad_default": 1
+    },
+    {
+      "nombre": "Electrodos adhesivos",
+      "cantidad_default": 50
+    },
+    {
+      "nombre": "Cinta hipoalergénica",
+      "cantidad_default": 2
+    },
+    {
+      "nombre": "Cargador",
+      "cantidad_default": 1
+    }
+  ],
+  "Tobii": [
+    {
+      "nombre": "Gafas eye-tracking",
+      "cantidad_default": 1
+    },
+    {
+      "nombre": "Unidad de grabación",
+      "cantidad_default": 1
+    },
+    {
+      "nombre": "Baterías",
+      "cantidad_default": 2
+    },
+    {
+      "nombre": "Tarjeta SD",
+      "cantidad_default": 1
+    }
+  ],
+  "Dinamómetro": [
+    {
+      "nombre": "Dinamómetro digital",
+      "cantidad_default": 1
+    },
+    {
+      "nombre": "Adaptadores de prensión",
+      "cantidad_default": 3
+    },
+    {
+      "nombre": "Cable USB",
+      "cantidad_default": 1
+    }
+  ],
+  "Lactómetro": [
+    {
+      "nombre": "Medidor portátil",
+      "cantidad_default": 1
+    },
+    {
+      "nombre": "Tiras reactivas",
+      "cantidad_default": 20
+    },
+    {
+      "nombre": "Lancetas",
+      "cantidad_default": 30
+    }
+  ],
+  "Dron": [
+    {
+      "nombre": "Dron",
+      "cantidad_default": 1
+    },
+    {
+      "nombre": "Control remoto",
+      "cantidad_default": 1
+    },
+    {
+      "nombre": "Baterías",
+      "cantidad_default": 2
+    },
+    {
+      "nombre": "Hélices repuesto",
+      "cantidad_default": 4
+    },
+    {
+      "nombre": "Tarjeta microSD",
+      "cantidad_default": 1
+    }
+  ],
+  "GoPro": [
+    {
+      "nombre": "Cámara",
+      "cantidad_default": 1
+    },
+    {
+      "nombre": "Baterías",
+      "cantidad_default": 2
+    },
+    {
+      "nombre": "Soportes",
+      "cantidad_default": 2
+    },
+    {
+      "nombre": "MicroSD",
+      "cantidad_default": 1
+    }
+  ],
+  "Tumeke": [
+    {
+      "nombre": "Tablet (Tumeke AI)",
+      "cantidad_default": 1
+    }
+  ]
+}

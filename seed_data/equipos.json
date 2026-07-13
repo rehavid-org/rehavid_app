@@ -1,0 +1,425 @@
+[
+  {
+    "id": "XS-01",
+    "categoria": "Xsens",
+    "modelo": "Xsens MVN Awinda",
+    "serial": "AWNDA-2024-0117",
+    "estado": "en_uso",
+    "responsable": "Equipo Rehavid Cali",
+    "ciudad_base": "Cali",
+    "ultima_revision": "2026-04-15",
+    "accesorios": [
+      {
+        "nombre": "Sensores inerciales",
+        "cantidad": 17,
+        "completo": true
+      },
+      {
+        "nombre": "Camisetas Xsens",
+        "cantidad": 3,
+        "completo": true,
+        "requiere_lavado": true
+      },
+      {
+        "nombre": "Estación base Awinda",
+        "cantidad": 1,
+        "completo": true
+      },
+      {
+        "nombre": "Cables USB-C",
+        "cantidad": 2,
+        "completo": true
+      },
+      {
+        "nombre": "Cargador múltiple",
+        "cantidad": 1,
+        "completo": true
+      },
+      {
+        "nombre": "Maletín de transporte",
+        "cantidad": 1,
+        "completo": true
+      }
+    ],
+    "notas": "Set completo 17 sensores",
+    "historial_uso": 42,
+    "proxima_mantencion": "2026-07-15"
+  },
+  {
+    "id": "XS-02",
+    "categoria": "Xsens",
+    "modelo": "Xsens MVN Link",
+    "serial": "LINK-2024-0204",
+    "estado": "disponible",
+    "responsable": "Equipo Rehavid Bogotá",
+    "ciudad_base": "Bogotá",
+    "ultima_revision": "2026-05-02",
+    "accesorios": [
+      {
+        "nombre": "Sensores cableados",
+        "cantidad": 17,
+        "completo": true
+      },
+      {
+        "nombre": "Traje Lycra Link",
+        "cantidad": 2,
+        "completo": true,
+        "requiere_lavado": true
+      },
+      {
+        "nombre": "Unidad de proceso",
+        "cantidad": 1,
+        "completo": true
+      },
+      {
+        "nombre": "Batería extendida",
+        "cantidad": 2,
+        "completo": true
+      },
+      {
+        "nombre": "Maletín rígido",
+        "cantidad": 1,
+        "completo": true
+      }
+    ],
+    "notas": "Set completo cableado",
+    "historial_uso": 28,
+    "proxima_mantencion": "2026-08-02"
+  },
+  {
+    "id": "EM-01",
+    "categoria": "EMG",
+    "modelo": "EMG Delsys Trigno 16ch",
+    "serial": "TRIGNO-2023-0011",
+    "estado": "disponible",
+    "responsable": "Equipo Rehavid Cali",
+    "ciudad_base": "Cali",
+    "ultima_revision": "2026-04-28",
+    "accesorios": [
+      {
+        "nombre": "Sensores Trigno Avanti",
+        "cantidad": 16,
+        "completo": true
+      },
+      {
+        "nombre": "Base inalámbrica",
+        "cantidad": 1,
+        "completo": true
+      },
+      {
+        "nombre": "Electrodos adhesivos",
+        "cantidad": 200,
+        "completo": true,
+        "consumible": true
+      },
+      {
+        "nombre": "Cinta hipoalergénica",
+        "cantidad": 5,
+        "completo": true,
+        "consumible": true
+      },
+      {
+        "nombre": "Cargador 16 puertos",
+        "cantidad": 1,
+        "completo": true
+      },
+      {
+        "nombre": "Software EMGworks license",
+        "cantidad": 1,
+        "completo": true
+      }
+    ],
+    "notas": "16 canales · alta gama",
+    "historial_uso": 67,
+    "proxima_mantencion": "2026-06-28"
+  },
+  {
+    "id": "EM-02",
+    "categoria": "EMG",
+    "modelo": "EMG Delsys Trigno 8ch",
+    "serial": "TRIGNO-2024-0028",
+    "estado": "en_uso",
+    "responsable": "Equipo Rehavid Medellín",
+    "ciudad_base": "Medellín",
+    "ultima_revision": "2026-03-20",
+    "accesorios": [
+      {
+        "nombre": "Sensores Trigno Avanti",
+        "cantidad": 8,
+        "completo": true
+      },
+      {
+        "nombre": "Base inalámbrica",
+        "cantidad": 1,
+        "completo": true
+      },
+      {
+        "nombre": "Electrodos adhesivos",
+        "cantidad": 100,
+        "completo": true,
+        "consumible": true
+      },
+      {
+        "nombre": "Cargador 8 puertos",
+        "cantidad": 1,
+        "completo": true
+      }
+    ],
+    "notas": "8 canales · backup",
+    "historial_uso": 19,
+    "proxima_mantencion": "2026-09-20"
+  },
+  {
+    "id": "TB-01",
+    "categoria": "Tobii",
+    "modelo": "Tobii Pro Glasses 3",
+    "serial": "TBG3-2025-0007",
+    "estado": "disponible",
+    "responsable": "Equipo Rehavid Bogotá",
+    "ciudad_base": "Bogotá",
+    "ultima_revision": "2026-05-10",
+    "accesorios": [
+      {
+        "nombre": "Gafas eye-tracking",
+        "cantidad": 1,
+        "completo": true
+      },
+      {
+        "nombre": "Unidad de grabación",
+        "cantidad": 1,
+        "completo": true
+      },
+      {
+        "nombre": "Batería de larga duración",
+        "cantidad": 2,
+        "completo": true
+      },
+      {
+        "nombre": "Lentes correctoras intercambiables",
+        "cantidad": 3,
+        "completo": true
+      },
+      {
+        "nombre": "Tarjeta SD 128GB",
+        "cantidad": 2,
+        "completo": true
+      },
+      {
+        "nombre": "Maletín Pelican",
+        "cantidad": 1,
+        "completo": true
+      }
+    ],
+    "notas": "Eye-tracking · única unidad",
+    "historial_uso": 14,
+    "proxima_mantencion": "2026-11-10"
+  },
+  {
+    "id": "DM-01",
+    "categoria": "Dinamómetro",
+    "modelo": "Mark-10 M5-100",
+    "serial": "M10-2024-0044",
+    "estado": "disponible",
+    "responsable": "Equipo Rehavid Cali",
+    "ciudad_base": "Cali",
+    "ultima_revision": "2026-04-02",
+    "accesorios": [
+      {
+        "nombre": "Dinamómetro digital",
+        "cantidad": 1,
+        "completo": true
+      },
+      {
+        "nombre": "Adaptadores de prensión",
+        "cantidad": 6,
+        "completo": true
+      },
+      {
+        "nombre": "Cable USB de datos",
+        "cantidad": 1,
+        "completo": true
+      },
+      {
+        "nombre": "Estuche con espuma",
+        "cantidad": 1,
+        "completo": true
+      }
+    ],
+    "notas": "Capacidad 500N",
+    "historial_uso": 23,
+    "proxima_mantencion": "2026-10-02"
+  },
+  {
+    "id": "LC-01",
+    "categoria": "Lactómetro",
+    "modelo": "Lactate Scout+",
+    "serial": "SCT-2024-0083",
+    "estado": "disponible",
+    "responsable": "Equipo Rehavid Bogotá",
+    "ciudad_base": "Bogotá",
+    "ultima_revision": "2026-04-25",
+    "accesorios": [
+      {
+        "nombre": "Medidor portátil",
+        "cantidad": 1,
+        "completo": true
+      },
+      {
+        "nombre": "Tiras reactivas",
+        "cantidad": 50,
+        "completo": true,
+        "consumible": true
+      },
+      {
+        "nombre": "Lancetas estériles",
+        "cantidad": 100,
+        "completo": true,
+        "consumible": true
+      },
+      {
+        "nombre": "Solución de control",
+        "cantidad": 2,
+        "completo": true,
+        "consumible": true
+      },
+      {
+        "nombre": "Estuche",
+        "cantidad": 1,
+        "completo": true
+      }
+    ],
+    "notas": "Tiras y lancetas incluidas",
+    "historial_uso": 17,
+    "proxima_mantencion": "2026-08-25"
+  },
+  {
+    "id": "DR-01",
+    "categoria": "Dron",
+    "modelo": "DJI Mini 4 Pro",
+    "serial": "DJI4P-2025-0019",
+    "estado": "disponible",
+    "responsable": "Equipo Rehavid Medellín",
+    "ciudad_base": "Medellín",
+    "ultima_revision": "2026-05-08",
+    "accesorios": [
+      {
+        "nombre": "Dron principal",
+        "cantidad": 1,
+        "completo": true
+      },
+      {
+        "nombre": "Control remoto DJI RC 2",
+        "cantidad": 1,
+        "completo": true
+      },
+      {
+        "nombre": "Baterías de vuelo",
+        "cantidad": 3,
+        "completo": true
+      },
+      {
+        "nombre": "Hélices de repuesto",
+        "cantidad": 8,
+        "completo": true
+      },
+      {
+        "nombre": "Tarjeta microSD 256GB",
+        "cantidad": 2,
+        "completo": true
+      },
+      {
+        "nombre": "Cargador múltiple",
+        "cantidad": 1,
+        "completo": true
+      },
+      {
+        "nombre": "Maletín DJI",
+        "cantidad": 1,
+        "completo": true
+      }
+    ],
+    "notas": "Inspección aérea · única unidad",
+    "historial_uso": 6,
+    "proxima_mantencion": "2026-11-08"
+  },
+  {
+    "id": "GP-01",
+    "categoria": "GoPro",
+    "modelo": "GoPro Hero 12 Black",
+    "serial": "GP12-2024-0055",
+    "estado": "disponible",
+    "responsable": "Equipo Rehavid Cali",
+    "ciudad_base": "Cali",
+    "ultima_revision": "2026-05-12",
+    "accesorios": [
+      {
+        "nombre": "Cámara principal",
+        "cantidad": 1,
+        "completo": true
+      },
+      {
+        "nombre": "Baterías Enduro",
+        "cantidad": 3,
+        "completo": true
+      },
+      {
+        "nombre": "Soportes diversos",
+        "cantidad": 5,
+        "completo": true
+      },
+      {
+        "nombre": "MicroSD 128GB",
+        "cantidad": 2,
+        "completo": true
+      },
+      {
+        "nombre": "Cargador dual",
+        "cantidad": 1,
+        "completo": true
+      }
+    ],
+    "notas": "Registro de tareas",
+    "historial_uso": 31,
+    "proxima_mantencion": "2026-11-12"
+  },
+  {
+    "id": "GP-02",
+    "categoria": "GoPro",
+    "modelo": "GoPro Hero 11 Black",
+    "serial": "GP11-2023-0072",
+    "estado": "disponible",
+    "responsable": "Equipo Rehavid Medellín",
+    "ciudad_base": "Medellín",
+    "ultima_revision": "2026-05-12",
+    "accesorios": [
+      {
+        "nombre": "Cámara principal",
+        "cantidad": 1,
+        "completo": true
+      },
+      {
+        "nombre": "Baterías",
+        "cantidad": 2,
+        "completo": true
+      },
+      {
+        "nombre": "Soportes diversos",
+        "cantidad": 4,
+        "completo": true
+      },
+      {
+        "nombre": "MicroSD 64GB",
+        "cantidad": 2,
+        "completo": true
+      },
+      {
+        "nombre": "Cargador",
+        "cantidad": 1,
+        "completo": true
+      }
+    ],
+    "notas": "Backup",
+    "historial_uso": 22,
+    "proxima_mantencion": "2026-08-12"
+  }
+]

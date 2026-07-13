@@ -1,0 +1,86 @@
+[
+  {
+    "id": "SOL-001",
+    "solicitante_email": "monica.vargas@arlsura.com",
+    "empresa_cliente": "Nutresa Sabaneta",
+    "servicio": "Xsens",
+    "ciudad": "Medellín",
+    "personas": 6,
+    "fecha_solicitud": "2026-05-15",
+    "fecha_confirmada": "2026-06-02",
+    "operador": "Jhon Orrego",
+    "estado": "confirmada"
+  },
+  {
+    "id": "SOL-002",
+    "solicitante_email": "monica.vargas@arlsura.com",
+    "empresa_cliente": "Postobón Yumbo",
+    "servicio": "Tumeke",
+    "ciudad": "Cali",
+    "personas": 12,
+    "fecha_solicitud": "2026-05-10",
+    "fecha_confirmada": "2026-05-28",
+    "operador": "Camila Restrepo",
+    "estado": "en_curso"
+  },
+  {
+    "id": "SOL-003",
+    "solicitante_email": "monica.vargas@arlsura.com",
+    "empresa_cliente": "Bancolombia",
+    "servicio": "Tobii",
+    "ciudad": "Medellín",
+    "personas": 3,
+    "fecha_solicitud": "2026-04-22",
+    "fecha_confirmada": "2026-05-08",
+    "operador": "Jeisson Mayorga",
+    "estado": "finalizada"
+  },
+  {
+    "id": "SOL-004",
+    "solicitante_email": "carlos.munoz@jdtass.com",
+    "empresa_cliente": "Mattelsa",
+    "servicio": "Paquete",
+    "ciudad": "Medellín",
+    "personas": 8,
+    "fecha_solicitud": "2026-05-18",
+    "fecha_confirmada": "2026-06-05",
+    "operador": "Jhon Orrego",
+    "estado": "confirmada"
+  },
+  {
+    "id": "SOL-005",
+    "solicitante_email": "carlos.munoz@jdtass.com",
+    "empresa_cliente": "Imbanaco",
+    "servicio": "EMG",
+    "ciudad": "Cali",
+    "personas": 2,
+    "fecha_solicitud": "2026-05-12",
+    "fecha_confirmada": null,
+    "operador": null,
+    "estado": "pendiente"
+  },
+  {
+    "id": "SOL-006",
+    "solicitante_email": "patricia.lopez@jdtass.com",
+    "empresa_cliente": "Colanta",
+    "servicio": "Xsens",
+    "ciudad": "Medellín",
+    "personas": 4,
+    "fecha_solicitud": "2026-05-19",
+    "fecha_confirmada": "2026-06-09",
+    "operador": "Jefferson Suárez",
+    "estado": "confirmada"
+  },
+  {
+    "id": "SOL-007",
+    "solicitante_email": "andres.castro@jdtass.com",
+    "empresa_cliente": "Tennis S.A.",
+    "servicio": "Tumeke",
+    "ciudad": "Medellín",
+    "personas": 5,
+    "fecha_solicitud": "2026-05-20",
+    "fecha_confirmada": null,
+    "operador": null,
+    "estado": "pendiente"
+  }
+]

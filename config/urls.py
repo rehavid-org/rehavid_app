@@ -33,6 +33,7 @@ urlpatterns = [
     path("auditoria/", include("rehavid_app.auditoria.urls", namespace="auditoria")),
     path("administracion/", include("rehavid_app.users.urls_admin", namespace="administracion")),
     path("portal/", include("rehavid_app.solicitudes.urls_portal", namespace="portal")),
+    path("solicitudes/", include("rehavid_app.solicitudes.urls", namespace="solicitudes")),
     # Media files
     *static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT),
 ]

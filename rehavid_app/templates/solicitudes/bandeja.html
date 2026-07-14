@@ -1,0 +1,89 @@
+{% extends "layouts/app.html" %}
+
+{% block title %}Bandeja de solicitudes · REHAVID{% endblock title %}
+{% block miga %}Operación · Solicitudes{% endblock miga %}
+{% block titulo %}Bandeja de solicitudes{% endblock titulo %}
+{% block acciones %}
+  <span class="chip pendiente">{{ pendientes }} pendiente{{ pendientes|pluralize }}</span>
+{% endblock acciones %}
+
+{% block content %}
+  <form class="filtros form-r" method="get">
+    <div class="campo">
+      <label for="f-estado">Ver</label>
+      <select id="f-estado" name="estado" onchange="this.form.submit()">
+        <option value="pendientes" {% if filtros.estado == "pendientes" or not filtros.estado %}selected{% endif %}>Pendientes</option>
+        {% for valor, etiqueta in estados %}
+          <option value="{{ valor }}" {% if filtros.estado == valor %}selected{% endif %}>{{ etiqueta }}</option>
+        {% endfor %}
+        <option value="todas" {% if filtros.estado == "todas" %}selected{% endif %}>Todas</option>
+      </select>
+    </div>
+  </form>
+
+  <div class="tabla-wrap">
+    <table class="tabla-r">
+      <thead>
+        <tr>
+          <th>Código</th>
+          <th>Solicitante</th>
+          <th>Servicio</th>
+          <th>Ciudad</th>
+          <th class="tar">Personas</th>
+          <th>Fecha sugerida</th>
+          <th>Días</th>
+          <th>Recibida</th>
+          <th>Estado</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in solicitudes %}
+          <tr>
+            <td>
+              <span class="code">{{ s.codigo }}</span>
+              {% if s.urgente %}<div><span class="chip cancelada">&gt;12 h sin atender</span></div>{% endif %}
+            </td>
+            <td>
+              {{ s.solicitante.name|default:s.solicitante.email }}
+              <div class="small muted">{{ s.empresa_cliente.nombre }}</div>
+            </td>
+            <td>
+              {{ s.servicio.nombre }}
+              {% if s.prof_perfil %}<div class="small muted">Prof.: {{ s.prof_cantidad }} · {{ s.prof_perfil }}</div>{% endif %}
+            </td>
+            <td>{{ s.ciudad.nombre }}</td>
+            <td class="tar">{{ s.personas }}</td>
+            <td>{{ s.fecha_sugerida|date:"d M Y" }}</td>
+            <td>{{ s.dias_estimados }}</td>
+            <td>{{ s.creada_en|date:"d M H:i" }}</td>
+            <td><span class="chip {{ s.estado }}">{{ s.get_estado_display }}</span></td>
+            <td>
+              {% if s.estado == "pendiente" %}
+                <form method="post" action="{% url 'solicitudes:atender' s.pk %}" class="flex" style="gap:4px">
+                  {% csrf_token %}
+                  <button type="submit" class="btn-r mini verde">Atender → crear reserva</button>
+                </form>
+              {% else %}
+                <span class="muted small">—</span>
+              {% endif %}
+            </td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="10">
+              <div class="vacio-estado">
+                <div class="titulo">Bandeja al día</div>
+                No hay solicitudes en este filtro.
+              </div>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <p class="small muted mt-1">
+    Atender valida la disponibilidad real y crea la reserva vinculada en la misma
+    transacción; si no hay stock, la solicitud sigue pendiente con el motivo.
+  </p>
+{% endblock content %}

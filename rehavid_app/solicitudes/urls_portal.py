@@ -1,24 +1,15 @@
 from django.urls import path
+from django.views.decorators.http import require_POST
 
-from rehavid_app.users.views import ModuloEnMigracionView
+from . import views
 
 app_name = "portal"
 urlpatterns = [
-    # Fase 5
-    path("", ModuloEnMigracionView.as_view(modulo="portal", titulo="Portal del solicitante"), name="inicio"),
-    path(
-        "equipos/",
-        ModuloEnMigracionView.as_view(modulo="equipos-disp", titulo="Equipos disponibles"),
-        name="equipos",
-    ),
-    path(
-        "solicitar/",
-        ModuloEnMigracionView.as_view(modulo="solicitar", titulo="Solicitar servicio"),
-        name="solicitar",
-    ),
-    path(
-        "mis-solicitudes/",
-        ModuloEnMigracionView.as_view(modulo="mis-solicitudes", titulo="Mis solicitudes"),
-        name="mis_solicitudes",
-    ),
+    path("", views.PortalInicioView.as_view(), name="inicio"),
+    path("equipos/", views.PortalEquiposView.as_view(), name="equipos"),
+    path("solicitar/", views.SolicitarView.as_view(), name="solicitar"),
+    path("mis-solicitudes/", views.MisSolicitudesView.as_view(), name="mis_solicitudes"),
+    path("solicitudes/<int:pk>/editar/", require_POST(views.editar_solicitud_view), name="editar"),
+    path("solicitudes/<int:pk>/cancelar/", require_POST(views.cancelar_solicitud_view), name="cancelar"),
+    path("solicitudes/<int:pk>/observacion/", require_POST(views.observacion_view), name="observacion"),
 ]

@@ -38,8 +38,13 @@ Bitácora de avance contra `PLAN_MIGRACION.md`. **Retomar por "PRÓXIMO PASO" ab
 - **Tests**: 137 en verde. Nuevos: `users/tests/test_matriz_acceso.py` (matriz vista×nivel + API) y `reservas/tests/test_views.py` (flujo crear→reprogramar→retorno→listo, cancelar libera, filtros). Smoke real contra seed: todas las vistas 200/403 correctos con jhon (n2), liliana (n3), monica (n4).
 - **Lint**: `ruff check` limpio. `line-length = 119` (alineado a djLint) y per-file-ignores para tests en `pyproject.toml`.
 
-## ⏳ Fase 5 · Portal solicitante — NO INICIADA ← **PRÓXIMO PASO**
-Servicios listos; faltan vistas: formulario solicitud (O16 accesorios dinámicos desde `AccesorioTipo`, O19 profesional, O10 preview saturación, fecha mínima hoy+7), mis solicitudes, bandeja operador + badge (polling a endpoint `contar_pendientes`), botón Atender → `atender_solicitud`.
+## ✅ Fase 5 · Portal solicitante + bandeja — COMPLETA
+- **Portal nivel 4** (`solicitudes/views.py` + `urls_portal.py`, reemplaza placeholders): inicio con KPIs y próximos servicios; equipos disponibles read-only con próxima fecha libre por categoría; **formulario de solicitud** (`portal:solicitar`): O16 accesorios dinámicos por servicio (JSON embebido + inputs `acc-<id>`), O19 profesional (perfil obligatorio), O10 preview de saturación (fetch a `/api/reservas/disponibilidad/`), fecha mínima hoy+7 validada en form y `min` del input (B4: `fecha_sugerida` persistida vía `services.crear_solicitud`).
+- **Mis solicitudes**: tabla con accesorios/observaciones/reserva vinculada; modales editar (solo pendiente), cancelar (48h vía servicio B5; cancela la reserva ligada) y observación. Guard server-side: un nivel 4 solo opera sus propias solicitudes.
+- **Bandeja del operador** (`solicitudes:bandeja`, nivel ≤2, módulo nuevo "bandeja" en MENU_BY_LEVEL 1-2): pendientes con urgencia >12h, filtro por estado, **Atender → `atender_solicitud` (B2)** con mensajes de error de stock (solicitud queda pendiente).
+- **Badge O17**: `/api/solicitudes/badge/` (`SolicitudViewSet` ≤2, también list + atender por API) + polling de 60s en el layout (`data-badge="bandeja"`).
+- 154 tests en verde (incluye e2e solicitud→reserva escrito antes de la instrucción de posponer tests). Smoke con seed: portal 200 con monica (n4), bandeja+badge 200 con jhon (n2).
+- **Nota**: por pedido del usuario, de la Fase 6 en adelante se prioriza implementación; tests e2e quedan para el final (Fase 8).
 
 ## ⏳ Fase 6 · Analítica/predictivo/alertas/planes/admin — NO INICIADA
 - Motor 11 detectores: spec exacta en `seed_data/MOTOR_RECOMENDACIONES.md` → portar a `analitica/services.py`.

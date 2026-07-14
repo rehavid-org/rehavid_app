@@ -29,6 +29,7 @@ MODULOS: dict[str, tuple[str, str, str]] = {
     "recos": ("Recomendaciones", "analitica:recos", "Dirección"),
     "planes": ("Planes de acción", "planes:lista", "Dirección"),
     "reservas": ("Reservas", "reservas:lista", "Operación"),
+    "bandeja": ("Bandeja de solicitudes", "solicitudes:bandeja", "Operación"),
     "equipos": ("Equipos", "equipos:lista", "Operación"),
     "paquetes": ("Paquetes", "paquetes:lista", "Operación"),
     "calendario": ("Calendario", "analitica:calendario", "Operación"),

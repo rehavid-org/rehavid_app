@@ -1,0 +1,172 @@
+{% extends "layouts/app.html" %}
+
+{% block title %}Solicitar servicio · REHAVID{% endblock title %}
+{% block miga %}Portal del solicitante{% endblock miga %}
+{% block titulo %}Solicitar servicio{% endblock titulo %}
+{% block acciones %}
+  <a class="btn-r" href="{% url 'portal:mis_solicitudes' %}">Mis solicitudes</a>
+{% endblock acciones %}
+
+{% block content %}
+  <div class="row g-3">
+    <div class="col-lg-7">
+      <form class="card-r form-r" method="post" id="form-solicitud">
+        {% csrf_token %}
+        {% if form.non_field_errors %}<div class="errores-form">{{ form.non_field_errors }}</div>{% endif %}
+
+        <p class="card-titulo">Servicio</p>
+        <div class="form-grid">
+          <div class="campo">
+            <label for="{{ form.servicio.id_for_label }}">Servicio requerido</label>
+            {{ form.servicio }}
+            {% if form.servicio.errors %}<div class="error">{{ form.servicio.errors.0 }}</div>{% endif %}
+          </div>
+          <div class="campo">
+            <label for="{{ form.ciudad.id_for_label }}">Ciudad</label>
+            {{ form.ciudad }}
+            {% if form.ciudad.errors %}<div class="error">{{ form.ciudad.errors.0 }}</div>{% endif %}
+          </div>
+          <div class="campo">
+            <label for="{{ form.empresa_cliente.id_for_label }}">Empresa</label>
+            {{ form.empresa_cliente }}
+            {% if form.empresa_cliente.errors %}<div class="error">{{ form.empresa_cliente.errors.0 }}</div>{% endif %}
+          </div>
+          <div class="campo">
+            <label for="{{ form.personas.id_for_label }}">Personas a evaluar</label>
+            {{ form.personas }}
+            {% if form.personas.errors %}<div class="error">{{ form.personas.errors.0 }}</div>{% endif %}
+          </div>
+          <div class="campo">
+            <label for="{{ form.fecha_sugerida.id_for_label }}">Fecha sugerida (mínimo hoy + 7 días)</label>
+            {{ form.fecha_sugerida }}
+            {% if form.fecha_sugerida.errors %}<div class="error">{{ form.fecha_sugerida.errors.0 }}</div>{% endif %}
+          </div>
+          <div class="campo">
+            <label for="{{ form.dias_estimados.id_for_label }}">Días estimados</label>
+            {{ form.dias_estimados }}
+            {% if form.dias_estimados.errors %}<div class="error">{{ form.dias_estimados.errors.0 }}</div>{% endif %}
+          </div>
+          <div class="campo ancho">
+            <label for="{{ form.notas.id_for_label }}">Notas para operaciones</label>
+            {{ form.notas }}
+          </div>
+        </div>
+
+        <p class="card-titulo mt-2">Accesorios del servicio</p>
+        <div id="accesorios" class="small muted">Seleccione un servicio para ver sus accesorios típicos.</div>
+
+        <p class="card-titulo mt-2">Profesional requerido</p>
+        <div class="form-grid">
+          <div class="campo">
+            <label for="{{ form.prof_cantidad.id_for_label }}">Cantidad</label>
+            {{ form.prof_cantidad }}
+            {% if form.prof_cantidad.errors %}<div class="error">{{ form.prof_cantidad.errors.0 }}</div>{% endif %}
+          </div>
+          <div class="campo">
+            <label for="{{ form.prof_perfil.id_for_label }}">Perfil (obligatorio)</label>
+            {{ form.prof_perfil }}
+            {% if form.prof_perfil.errors %}<div class="error">{{ form.prof_perfil.errors.0 }}</div>{% endif %}
+          </div>
+          <div class="campo">
+            <label for="{{ form.prof_nombre.id_for_label }}">Nombre</label>
+            {{ form.prof_nombre }}
+          </div>
+          <div class="campo">
+            <label for="{{ form.prof_especialidad.id_for_label }}">Especialidad</label>
+            {{ form.prof_especialidad }}
+          </div>
+          <div class="campo">
+            <label for="{{ form.prof_telefono.id_for_label }}">Teléfono</label>
+            {{ form.prof_telefono }}
+          </div>
+          <div class="campo">
+            <label for="{{ form.prof_correo.id_for_label }}">Correo</label>
+            {{ form.prof_correo }}
+            {% if form.prof_correo.errors %}<div class="error">{{ form.prof_correo.errors.0 }}</div>{% endif %}
+          </div>
+        </div>
+
+        <div class="flex mt-2">
+          <button class="btn-r primario" type="submit">Enviar solicitud</button>
+          <a class="btn-r" href="{% url 'portal:inicio' %}">Descartar</a>
+        </div>
+      </form>
+    </div>
+    <div class="col-lg-5">
+      <div class="panel-destacado">
+        <p class="card-titulo">Saturación en la fecha elegida</p>
+        <div class="disp-preview" id="disp-preview">
+          Elija servicio y fecha para ver qué tan copada está la agenda de equipos.
+        </div>
+        <p class="small muted mt-1">
+          La solicitud queda <strong>pendiente</strong> hasta que un operador la atienda;
+          en ese momento se crea la reserva definitiva de equipos.
+        </p>
+      </div>
+    </div>
+  </div>
+{% endblock content %}
+
+{% block inline_javascript %}
+  {{ accesorios_json|json_script:"accesorios-data" }}
+  <script>
+    window.addEventListener('DOMContentLoaded', () => {
+      const ACCESORIOS = JSON.parse(document.getElementById('accesorios-data').textContent);
+      const form = document.getElementById('form-solicitud');
+      const cont = document.getElementById('accesorios');
+      const preview = document.getElementById('disp-preview');
+      const selServicio = form.querySelector('[name="servicio"]');
+
+      function pintarAccesorios() {
+        const lista = ACCESORIOS[selServicio.value] || [];
+        if (!lista.length) {
+          cont.className = 'small muted';
+          cont.textContent = selServicio.value
+            ? 'Este servicio no tiene accesorios configurables.'
+            : 'Seleccione un servicio para ver sus accesorios típicos.';
+          return;
+        }
+        cont.className = 'form-grid';
+        cont.innerHTML = lista.map((a) => `
+          <div class="campo flex" style="gap:8px">
+            <input type="number" name="acc-${a.id}" value="0" min="0" style="width:70px" id="acc-${a.id}" />
+            <label for="acc-${a.id}" style="text-transform:none;letter-spacing:0;margin:0">
+              ${a.nombre} <span class="muted">(sugerido: ${a.cantidad_default})</span>
+            </label>
+          </div>`).join('');
+      }
+
+      async function saturacion() {
+        const fecha = form.querySelector('[name="fecha_sugerida"]').value;
+        const dias = parseInt(form.querySelector('[name="dias_estimados"]').value || '1', 10);
+        preview.classList.remove('ok', 'no');
+        if (!selServicio.value || !fecha) {
+          preview.textContent = 'Elija servicio y fecha para ver qué tan copada está la agenda de equipos.';
+          return;
+        }
+        const retorno = new Date(fecha + 'T00:00:00');
+        retorno.setDate(retorno.getDate() + Math.max(dias - 1, 0));
+        const params = new URLSearchParams({
+          servicio: selServicio.value,
+          fecha_salida: fecha,
+          fecha_retorno: retorno.toISOString().slice(0, 10),
+        });
+        preview.textContent = 'Consultando…';
+        try {
+          const res = await fetch(`/api/reservas/disponibilidad/?${params}`, { credentials: 'same-origin' });
+          const data = await res.json();
+          preview.classList.add(data.disponible ? 'ok' : 'no');
+          preview.textContent = (data.disponible ? '✓ ' : '⚠ ') + data.motivo
+            + (data.disponible ? '' : ' — puede enviar la solicitud igualmente y operaciones propondrá fecha.');
+        } catch (e) {
+          preview.textContent = 'No fue posible consultar la saturación.';
+        }
+      }
+
+      selServicio.addEventListener('change', () => { pintarAccesorios(); saturacion(); });
+      form.querySelector('[name="fecha_sugerida"]').addEventListener('change', saturacion);
+      form.querySelector('[name="dias_estimados"]').addEventListener('change', saturacion);
+      pintarAccesorios();
+    });
+  </script>
+{% endblock inline_javascript %}

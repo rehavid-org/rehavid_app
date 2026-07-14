@@ -1,0 +1,195 @@
+{% extends "layouts/app.html" %}
+
+{% block title %}Mis solicitudes · REHAVID{% endblock title %}
+{% block miga %}Portal del solicitante{% endblock miga %}
+{% block titulo %}Mis solicitudes{% endblock titulo %}
+{% block acciones %}
+  <a class="btn-r primario" href="{% url 'portal:solicitar' %}">+ Solicitar servicio</a>
+{% endblock acciones %}
+
+{% block content %}
+  <div class="tabla-wrap">
+    <table class="tabla-r">
+      <thead>
+        <tr>
+          <th>Código</th>
+          <th>Servicio</th>
+          <th>Ciudad</th>
+          <th class="tar">Personas</th>
+          <th>Fecha sugerida</th>
+          <th>Días</th>
+          <th>Estado</th>
+          <th>Reserva</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in solicitudes %}
+          <tr>
+            <td>
+              <span class="code">{{ s.codigo }}</span>
+              {% if s.editada %}<div class="small muted">editada</div>{% endif %}
+            </td>
+            <td>
+              {{ s.servicio.nombre }}
+              {% if s.accesorios_solicitados.all %}
+                <div class="small muted">
+                  {% for a in s.accesorios_solicitados.all %}{{ a.nombre }} ×{{ a.cantidad }}{% if not forloop.last %} · {% endif %}{% endfor %}
+                </div>
+              {% endif %}
+            </td>
+            <td>{{ s.ciudad.nombre }}</td>
+            <td class="tar">{{ s.personas }}</td>
+            <td>{{ s.fecha_sugerida|date:"d M Y" }}</td>
+            <td>{{ s.dias_estimados }}</td>
+            <td>
+              <span class="chip {{ s.estado }}">{{ s.get_estado_display }}</span>
+              {% if s.estado == "cancelada" and s.motivo_cancelacion %}
+                <div class="small muted">{{ s.motivo_cancelacion|truncatechars:40 }}</div>
+              {% endif %}
+            </td>
+            <td>
+              {% with reserva=s.reservas.all|first %}
+                {% if reserva %}<span class="code">{{ reserva.codigo }}</span>{% else %}<span class="muted">—</span>{% endif %}
+              {% endwith %}
+            </td>
+            <td>
+              <div class="flex" style="gap:4px">
+                {% if s.estado == "pendiente" %}
+                  <button class="btn-r mini js-accion"
+                          data-modal="#modalEditar"
+                          data-url="{% url 'portal:editar' s.pk %}"
+                          data-codigo="{{ s.codigo }}"
+                          data-personas="{{ s.personas }}"
+                          data-notas="{{ s.notas }}">Editar</button>
+                {% endif %}
+                {% if s.estado == "pendiente" or s.estado == "confirmada" %}
+                  <button class="btn-r mini peligro js-accion"
+                          data-modal="#modalCancelar"
+                          data-url="{% url 'portal:cancelar' s.pk %}"
+                          data-codigo="{{ s.codigo }}">Cancelar</button>
+                {% endif %}
+                {% if s.estado == "confirmada" %}
+                  <button class="btn-r mini js-accion"
+                          data-modal="#modalObservacion"
+                          data-url="{% url 'portal:observacion' s.pk %}"
+                          data-codigo="{{ s.codigo }}">Observación</button>
+                {% endif %}
+              </div>
+              {% if s.observaciones.all %}
+                <div class="small muted mt-1">
+                  {% for o in s.observaciones.all %}💬 {{ o.texto|truncatechars:50 }}<br />{% endfor %}
+                </div>
+              {% endif %}
+            </td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="9">
+              <div class="vacio-estado">
+                <div class="titulo">Aún no tiene solicitudes</div>
+                Cree la primera con “Solicitar servicio”.
+              </div>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <p class="small muted mt-1">
+    Las solicitudes confirmadas pueden cancelarse hasta 48 horas antes de la fecha
+    programada del servicio; después, contacte a coordinación.
+  </p>
+{% endblock content %}
+
+{% block modal %}
+  <div class="modal fade" id="modalEditar" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <form class="modal-content form-r" method="post">
+        {% csrf_token %}
+        <div class="modal-header">
+          <h5 class="modal-title">Editar <span class="js-codigo code"></span></h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body">
+          <div class="campo">
+            <label>Personas a evaluar</label>
+            {{ editar_form.personas }}
+          </div>
+          <div class="campo">
+            <label>Notas</label>
+            {{ editar_form.notas }}
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-r" data-bs-dismiss="modal">Cerrar</button>
+          <button type="submit" class="btn-r primario">Guardar cambios</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal fade" id="modalCancelar" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <form class="modal-content form-r" method="post">
+        {% csrf_token %}
+        <div class="modal-header">
+          <h5 class="modal-title">Cancelar <span class="js-codigo code"></span></h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body">
+          <div class="campo">
+            <label>Motivo</label>
+            {{ cancelar_form.motivo }}
+          </div>
+          <p class="small muted">Si la solicitud ya tiene reserva creada, la reserva también se cancela.</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-r" data-bs-dismiss="modal">Cerrar</button>
+          <button type="submit" class="btn-r peligro">Cancelar solicitud</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal fade" id="modalObservacion" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <form class="modal-content form-r" method="post">
+        {% csrf_token %}
+        <div class="modal-header">
+          <h5 class="modal-title">Observación sobre <span class="js-codigo code"></span></h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body">
+          <div class="campo">
+            <label>Observación</label>
+            {{ observacion_form.texto }}
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-r" data-bs-dismiss="modal">Cerrar</button>
+          <button type="submit" class="btn-r primario">Agregar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+{% endblock modal %}
+
+{% block inline_javascript %}
+  <script>
+    window.addEventListener('DOMContentLoaded', () => {
+      document.querySelectorAll('.js-accion').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const modal = document.querySelector(btn.dataset.modal);
+          modal.querySelector('form').action = btn.dataset.url;
+          modal.querySelector('.js-codigo').textContent = btn.dataset.codigo;
+          if (btn.dataset.personas) modal.querySelector('[name="personas"]').value = btn.dataset.personas;
+          if (btn.dataset.notas !== undefined && modal.querySelector('[name="notas"]')) {
+            modal.querySelector('[name="notas"]').value = btn.dataset.notas;
+          }
+          bootstrap.Modal.getOrCreateInstance(modal).show();
+        });
+      });
+    });
+  </script>
+{% endblock inline_javascript %}

@@ -1,0 +1,35 @@
+{% extends "layouts/app.html" %}
+
+{% block title %}Equipos disponibles · REHAVID{% endblock title %}
+{% block miga %}Portal del solicitante{% endblock miga %}
+{% block titulo %}Equipos disponibles{% endblock titulo %}
+{% block acciones %}
+  <a class="btn-r primario" href="{% url 'portal:solicitar' %}">+ Solicitar servicio</a>
+{% endblock acciones %}
+
+{% block content %}
+  <div class="equipos-grid">
+    {% for c in categorias %}
+      <div class="equipo-card {% if c.sin_stock %}tumeke{% endif %}">
+        <span class="codigo">{% if c.sin_stock %}SOFTWARE{% else %}{{ c.disponibles }}/{{ c.total }} unidades libres hoy{% endif %}</span>
+        <span class="modelo">{{ c.servicio.nombre }}</span>
+        <span class="meta">{{ c.servicio.descripcion|default:"Equipo de medición biomecánica" }}</span>
+        <div class="pie">
+          {% if c.sin_stock %}
+            <span class="chip disponible">Siempre disponible</span>
+          {% elif c.disponibles %}
+            <span class="chip disponible">Disponible hoy</span>
+          {% elif c.proxima %}
+            <span class="chip pendiente">Libre desde {{ c.proxima|date:"d M" }}</span>
+          {% else %}
+            <span class="chip cancelada">Sin fecha próxima</span>
+          {% endif %}
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+  <p class="small muted mt-2">
+    La disponibilidad definitiva se valida al atender su solicitud. La fecha "libre desde"
+    es la primera con stock para un servicio de 1 día.
+  </p>
+{% endblock content %}

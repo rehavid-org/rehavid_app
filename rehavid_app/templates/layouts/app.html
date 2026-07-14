@@ -44,8 +44,8 @@
                  href="{{ item.url }}"
                  data-modulo="{{ item.modulo }}">
                 <span>{{ item.etiqueta }}</span>
-                {% if item.modulo == "mis-solicitudes" or item.modulo == "reservas" %}
-                  <span class="menu-badge d-none" data-badge="{{ item.modulo }}"></span>
+                {% if item.modulo == "bandeja" %}
+                  <span class="menu-badge d-none" data-badge="bandeja"></span>
                 {% endif %}
               </a>
             {% endfor %}
@@ -93,6 +93,24 @@
       </script>
     {% endif %}
     {% block modal %}{% endblock modal %}
+    <script>
+      // O17 · badge de solicitudes pendientes en el menú del operador
+      window.addEventListener('DOMContentLoaded', () => {
+        const badge = document.querySelector('[data-badge="bandeja"]');
+        if (!badge) return;
+        async function refrescar() {
+          try {
+            const res = await fetch('/api/solicitudes/badge/', { credentials: 'same-origin' });
+            if (!res.ok) return;
+            const { pendientes } = await res.json();
+            badge.textContent = pendientes;
+            badge.classList.toggle('d-none', !pendientes);
+          } catch (e) { /* red caída: se reintenta en el próximo ciclo */ }
+        }
+        refrescar();
+        setInterval(refrescar, 60000);
+      });
+    </script>
     {% block inline_javascript %}{% endblock inline_javascript %}
   </body>
 </html>

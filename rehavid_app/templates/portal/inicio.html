@@ -1,0 +1,72 @@
+{% extends "layouts/app.html" %}
+
+{% block title %}Portal · REHAVID{% endblock title %}
+{% block miga %}Portal del solicitante{% endblock miga %}
+{% block titulo %}Hola, {{ request.user.name|default:request.user.email }}{% endblock titulo %}
+{% block acciones %}
+  <a class="btn-r primario" href="{% url 'portal:solicitar' %}">+ Solicitar servicio</a>
+{% endblock acciones %}
+
+{% block content %}
+  <div class="kpi-grid">
+    <div class="kpi warn">
+      <div class="tag">Pendientes</div>
+      <div class="value">{{ kpi_pendientes }}</div>
+      <div class="sub">esperando confirmación</div>
+    </div>
+    <div class="kpi good">
+      <div class="tag">Confirmadas</div>
+      <div class="value">{{ kpi_confirmadas }}</div>
+      <div class="sub">con reserva programada</div>
+    </div>
+    <div class="kpi">
+      <div class="tag">Finalizadas</div>
+      <div class="value">{{ kpi_finalizadas }}</div>
+      <div class="sub">servicios ya ejecutados</div>
+    </div>
+    <div class="kpi accent">
+      <div class="tag">Total histórico</div>
+      <div class="value">{{ kpi_total }}</div>
+      <div class="sub">solicitudes de su empresa</div>
+    </div>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-lg-6">
+      <div class="card-r">
+        <p class="card-titulo">Próximos servicios confirmados</p>
+        {% for s in proximas %}
+          <div class="flex-between" style="padding:8px 0;border-bottom:1px solid var(--line-3)">
+            <div>
+              <span class="code">{{ s.codigo }}</span> · {{ s.servicio.nombre }} · {{ s.ciudad.nombre }}
+              <div class="small muted">{{ s.personas }} personas</div>
+            </div>
+            <strong>{{ s.fecha_sugerida|date:"d M Y" }}</strong>
+          </div>
+        {% empty %}
+          <div class="vacio-estado">
+            <div class="titulo">Sin servicios programados</div>
+            Cree una solicitud para reservar equipos y profesionales.
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+    <div class="col-lg-6">
+      <div class="card-r">
+        <p class="card-titulo">Últimas solicitudes</p>
+        {% for s in ultimas %}
+          <div class="flex-between" style="padding:8px 0;border-bottom:1px solid var(--line-3)">
+            <div>
+              <span class="code">{{ s.codigo }}</span> · {{ s.servicio.nombre }}
+              <div class="small muted">{{ s.creada_en|date:"d M Y" }}</div>
+            </div>
+            <span class="chip {{ s.estado }}">{{ s.get_estado_display }}</span>
+          </div>
+        {% empty %}
+          <p class="muted small">Aún no ha creado solicitudes.</p>
+        {% endfor %}
+        <a class="btn-r mini mt-1" href="{% url 'portal:mis_solicitudes' %}">Ver todas</a>
+      </div>
+    </div>
+  </div>
+{% endblock content %}

@@ -8,9 +8,11 @@ from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 from django.views.generic import DetailView
 from django.views.generic import RedirectView
+from django.views.generic import TemplateView
 from django.views.generic import UpdateView
 
 from rehavid_app.users.models import User
+from rehavid_app.users.permissions import ModuloRequeridoMixin
 
 if TYPE_CHECKING:
     from django.db.models import QuerySet
@@ -43,10 +45,31 @@ user_update_view = UserUpdateView.as_view()
 
 
 class UserRedirectView(LoginRequiredMixin, RedirectView):
+    """Aterrizaje post-login: cada nivel entra a su módulo principal."""
+
     permanent = False
 
     def get_redirect_url(self) -> str:
-        return reverse("users:detail", kwargs={"username": self.request.user.username})
+        nivel = self.request.user.nivel
+        if nivel <= 2:  # noqa: PLR2004
+            return reverse("reservas:lista")
+        if nivel == 3:  # noqa: PLR2004
+            return reverse("analitica:calendario")
+        return reverse("portal:inicio")
 
 
 user_redirect_view = UserRedirectView.as_view()
+
+
+class ModuloEnMigracionView(ModuloRequeridoMixin, TemplateView):
+    """Placeholder navegable para módulos aún no migrados (fases 5-6)."""
+
+    template_name = "en_migracion.html"
+    modulo = ""
+    titulo = ""
+
+    def get_context_data(self, **kwargs):
+        return super().get_context_data(**kwargs) | {
+            "modulo_activo": self.modulo,
+            "titulo_modulo": self.titulo,
+        }

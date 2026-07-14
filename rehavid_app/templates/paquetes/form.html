@@ -1,0 +1,42 @@
+{% extends "layouts/app.html" %}
+
+{% block title %}{{ titulo }} · REHAVID{% endblock title %}
+{% block miga %}Operación · Paquetes{% endblock miga %}
+{% block titulo %}{{ titulo }}{% endblock titulo %}
+{% block acciones %}
+  <a class="btn-r" href="{% url 'paquetes:lista' %}">← Volver a paquetes</a>
+{% endblock acciones %}
+
+{% block content %}
+  <div class="row">
+    <div class="col-lg-7">
+      <form class="card-r form-r" method="post">
+        {% csrf_token %}
+        {% if form.non_field_errors %}<div class="errores-form">{{ form.non_field_errors }}</div>{% endif %}
+        <div class="form-grid">
+          {% for campo in form %}
+            <div class="campo {% if campo.name == 'descripcion' or campo.name == 'servicios_requeridos' %}ancho{% endif %}">
+              <label for="{{ campo.id_for_label }}">{{ campo.label }}</label>
+              {{ campo }}
+              {% if campo.errors %}<div class="error">{{ campo.errors.0 }}</div>{% endif %}
+            </div>
+          {% endfor %}
+        </div>
+        <div class="flex mt-2">
+          <button class="btn-r primario" type="submit">Guardar paquete</button>
+          <a class="btn-r" href="{% url 'paquetes:lista' %}">Descartar</a>
+        </div>
+      </form>
+    </div>
+    <div class="col-lg-5">
+      <div class="panel-destacado">
+        <p class="card-titulo">Cómo reserva un paquete</p>
+        <p class="small">
+          Al reservar el paquete se asigna <strong>un equipo libre por cada categoría</strong>
+          marcada. Si alguna categoría no tiene stock en las fechas pedidas, la reserva
+          completa se bloquea con el motivo.
+        </p>
+      </div>
+    </div>
+  </div>
+{% endblock content %}

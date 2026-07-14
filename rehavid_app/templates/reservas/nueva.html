@@ -1,0 +1,154 @@
+{% extends "layouts/app.html" %}
+
+{% block title %}Nueva reserva · REHAVID{% endblock title %}
+{% block miga %}Operación · Reservas{% endblock miga %}
+{% block titulo %}Nueva reserva{% endblock titulo %}
+{% block acciones %}
+  <a class="btn-r" href="{% url 'reservas:lista' %}">← Volver a reservas</a>
+{% endblock acciones %}
+
+{% block content %}
+  <div class="row g-3">
+    <div class="col-lg-7">
+      <form class="card-r form-r" method="post" id="form-reserva">
+        {% csrf_token %}
+        {% if form.non_field_errors %}
+          <div class="errores-form">{{ form.non_field_errors }}</div>
+        {% endif %}
+        <p class="card-titulo">Qué se reserva</p>
+        <div class="campo">
+          <div class="flex">
+            {% for radio in form.tipo %}
+              <label class="flex" style="text-transform:none;letter-spacing:0;font-size:12.5px;gap:5px">
+                {{ radio.tag }} {{ radio.choice_label }}
+              </label>
+            {% endfor %}
+          </div>
+        </div>
+        <div class="form-grid">
+          <div class="campo" id="campo-servicio">
+            <label for="{{ form.servicio.id_for_label }}">Servicio</label>
+            {{ form.servicio }}
+            {% if form.servicio.errors %}<div class="error">{{ form.servicio.errors.0 }}</div>{% endif %}
+          </div>
+          <div class="campo" id="campo-paquete" hidden>
+            <label for="{{ form.paquete.id_for_label }}">Paquete</label>
+            {{ form.paquete }}
+            {% if form.paquete.errors %}<div class="error">{{ form.paquete.errors.0 }}</div>{% endif %}
+          </div>
+        </div>
+
+        <p class="card-titulo mt-2">Cliente y alcance</p>
+        <div class="form-grid">
+          <div class="campo">
+            <label for="{{ form.cliente.id_for_label }}">Empresa cliente</label>
+            {{ form.cliente }}
+            {% if form.cliente.errors %}<div class="error">{{ form.cliente.errors.0 }}</div>{% endif %}
+          </div>
+          <div class="campo">
+            <label for="{{ form.ciudad.id_for_label }}">Ciudad</label>
+            {{ form.ciudad }}
+            {% if form.ciudad.errors %}<div class="error">{{ form.ciudad.errors.0 }}</div>{% endif %}
+          </div>
+          <div class="campo">
+            <label for="{{ form.personas.id_for_label }}">Personas a evaluar</label>
+            {{ form.personas }}
+            {% if form.personas.errors %}<div class="error">{{ form.personas.errors.0 }}</div>{% endif %}
+          </div>
+        </div>
+
+        <p class="card-titulo mt-2">Fechas</p>
+        <div class="form-grid">
+          <div class="campo">
+            <label for="{{ form.fecha_salida.id_for_label }}">Salida</label>
+            {{ form.fecha_salida }}
+            {% if form.fecha_salida.errors %}<div class="error">{{ form.fecha_salida.errors.0 }}</div>{% endif %}
+          </div>
+          <div class="campo">
+            <label for="{{ form.fecha_retorno_esp.id_for_label }}">Retorno esperado</label>
+            {{ form.fecha_retorno_esp }}
+            {% if form.fecha_retorno_esp.errors %}<div class="error">{{ form.fecha_retorno_esp.errors.0 }}</div>{% endif %}
+          </div>
+        </div>
+
+        <div class="flex mt-2">
+          <button class="btn-r primario" type="submit">Crear reserva</button>
+          <a class="btn-r" href="{% url 'reservas:lista' %}">Descartar</a>
+        </div>
+      </form>
+    </div>
+    <div class="col-lg-5">
+      <div class="panel-destacado">
+        <p class="card-titulo">Disponibilidad en las fechas elegidas</p>
+        <div class="disp-preview" id="disp-preview">
+          Seleccione servicio o paquete y las dos fechas para ver la disponibilidad real del inventario.
+        </div>
+        <div class="small muted mt-1" id="disp-detalle"></div>
+      </div>
+    </div>
+  </div>
+{% endblock content %}
+
+{% block inline_javascript %}
+  <script>
+    window.addEventListener('DOMContentLoaded', () => {
+      const form = document.getElementById('form-reserva');
+      const preview = document.getElementById('disp-preview');
+      const detalle = document.getElementById('disp-detalle');
+      const campoServicio = document.getElementById('campo-servicio');
+      const campoPaquete = document.getElementById('campo-paquete');
+
+      function tipo() {
+        return form.querySelector('input[name="tipo"]:checked').value;
+      }
+
+      function alternarTipo() {
+        campoServicio.hidden = tipo() !== 'servicio';
+        campoPaquete.hidden = tipo() !== 'paquete';
+        consultar();
+      }
+
+      async function consultar() {
+        const salida = form.querySelector('[name="fecha_salida"]').value;
+        const retorno = form.querySelector('[name="fecha_retorno_esp"]').value;
+        const servicio = form.querySelector('[name="servicio"]').value;
+        const paquete = form.querySelector('[name="paquete"]').value;
+        const que = tipo() === 'paquete' ? paquete : servicio;
+        preview.classList.remove('ok', 'no');
+        detalle.textContent = '';
+        if (!que || !salida || !retorno) {
+          preview.textContent = 'Seleccione servicio o paquete y las dos fechas para ver la disponibilidad real del inventario.';
+          return;
+        }
+        preview.textContent = 'Consultando disponibilidad…';
+        const params = new URLSearchParams({ fecha_salida: salida, fecha_retorno: retorno });
+        params.set(tipo() === 'paquete' ? 'paquete' : 'servicio', que);
+        try {
+          const res = await fetch(`/api/reservas/disponibilidad/?${params}`, { credentials: 'same-origin' });
+          const data = await res.json();
+          if (!res.ok) {
+            preview.textContent = data.detail || 'No fue posible consultar la disponibilidad.';
+            return;
+          }
+          preview.classList.add(data.disponible ? 'ok' : 'no');
+          preview.textContent = (data.disponible ? '✓ ' : '✕ ') + data.motivo;
+          if (data.detalle) {
+            detalle.innerHTML = data.detalle
+              .map((d) => `${d.disponible ? '✓' : '✕'} ${d.categoria}: ${d.motivo}`)
+              .join('<br>');
+          } else if (data.equipos_libres && data.equipos_libres.length) {
+            detalle.textContent = 'Equipos libres: ' + data.equipos_libres.join(', ');
+          }
+        } catch (e) {
+          preview.textContent = 'No fue posible consultar la disponibilidad.';
+        }
+      }
+
+      form.querySelectorAll('input[name="tipo"]').forEach((r) => r.addEventListener('change', alternarTipo));
+      ['servicio', 'paquete', 'fecha_salida', 'fecha_retorno_esp'].forEach((n) => {
+        form.querySelector(`[name="${n}"]`).addEventListener('change', consultar);
+      });
+      alternarTipo();
+    });
+  </script>
+{% endblock inline_javascript %}

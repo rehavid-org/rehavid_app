@@ -1,0 +1,246 @@
+{% extends "layouts/app.html" %}
+
+{% block title %}Reservas · REHAVID{% endblock title %}
+{% block miga %}Operación · Reservas{% endblock miga %}
+{% block titulo %}Reservas{% endblock titulo %}
+{% block acciones %}
+  <a class="btn-r primario" href="{% url 'reservas:nueva' %}">+ Nueva reserva</a>
+{% endblock acciones %}
+
+{% block content %}
+  <form class="filtros form-r" method="get">
+    <div class="campo grow">
+      <label for="f-q">Buscar</label>
+      <input id="f-q" type="text" name="q" value="{{ filtros.q }}" placeholder="Código o cliente…" />
+    </div>
+    <div class="campo">
+      <label for="f-servicio">Servicio</label>
+      <select id="f-servicio" name="servicio">
+        <option value="">Todos</option>
+        {% for s in servicios %}
+          <option value="{{ s.pk }}" {% if filtros.servicio == s.pk|stringformat:"s" %}selected{% endif %}>{{ s.nombre }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="campo">
+      <label for="f-ciudad">Ciudad</label>
+      <select id="f-ciudad" name="ciudad">
+        <option value="">Todas</option>
+        {% for c in ciudades %}
+          <option value="{{ c.pk }}" {% if filtros.ciudad == c.pk|stringformat:"s" %}selected{% endif %}>{{ c.nombre }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="campo">
+      <label for="f-estado">Estado</label>
+      <select id="f-estado" name="estado">
+        <option value="">Todas</option>
+        <option value="activas" {% if filtros.estado == "activas" %}selected{% endif %}>Activas</option>
+        <option value="retornadas" {% if filtros.estado == "retornadas" %}selected{% endif %}>Retornadas</option>
+        <option value="canceladas" {% if filtros.estado == "canceladas" %}selected{% endif %}>Canceladas</option>
+      </select>
+    </div>
+    <div class="campo">
+      <label for="f-desde">Salida desde</label>
+      <input id="f-desde" type="date" name="desde" value="{{ filtros.desde }}" />
+    </div>
+    <div class="campo">
+      <label for="f-hasta">Salida hasta</label>
+      <input id="f-hasta" type="date" name="hasta" value="{{ filtros.hasta }}" />
+    </div>
+    <button class="btn-r" type="submit">Filtrar</button>
+  </form>
+
+  <div class="tabla-wrap">
+    <table class="tabla-r">
+      <thead>
+        <tr>
+          <th>Código</th>
+          <th>Servicio</th>
+          <th>Cliente</th>
+          <th>Ciudad</th>
+          <th class="tar">Personas</th>
+          <th>Salida</th>
+          <th>Retorno esp.</th>
+          <th>Equipos</th>
+          <th>Estado</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in reservas %}
+          <tr>
+            <td><span class="code">{{ r.codigo }}</span></td>
+            <td>
+              {{ r.servicio.nombre }}
+              {% if r.paquete %}<span class="chip info">{{ r.paquete.codigo }}</span>{% endif %}
+            </td>
+            <td>{{ r.cliente.nombre }}</td>
+            <td>{{ r.ciudad.nombre }}</td>
+            <td class="tar">{{ r.personas }}</td>
+            <td>
+              {{ r.fecha_salida|date:"d M Y" }}
+              {% if r.reprogramada_desde %}<div class="small muted">antes {{ r.reprogramada_desde|date:"d M" }}</div>{% endif %}
+            </td>
+            <td>{{ r.fecha_retorno_esp|date:"d M Y" }}</td>
+            <td>
+              {% for e in r.equipos.all %}<span class="code">{{ e.codigo }}</span>{% if not forloop.last %} · {% endif %}{% empty %}<span class="muted">—</span>{% endfor %}
+            </td>
+            <td>
+              {% if r.cancelada %}
+                <span class="chip cancelada">Cancelada</span>
+              {% elif r.confirmacion_retorno %}
+                <span class="chip ok">Retornada · {{ r.confirmacion_retorno.estado_kit }}</span>
+              {% else %}
+                <span class="chip confirmada">Activa</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if r.activa %}
+                <div class="flex" style="gap:4px">
+                  <button class="btn-r mini js-accion"
+                          data-modal="#modalReprogramar"
+                          data-url="{% url 'reservas:reprogramar' r.pk %}"
+                          data-codigo="{{ r.codigo }}">Reprogramar</button>
+                  <button class="btn-r mini js-accion"
+                          data-modal="#modalRetorno"
+                          data-url="{% url 'reservas:retorno' r.pk %}"
+                          data-codigo="{{ r.codigo }}">Retorno</button>
+                  <button class="btn-r mini peligro js-accion"
+                          data-modal="#modalCancelar"
+                          data-url="{% url 'reservas:cancelar' r.pk %}"
+                          data-codigo="{{ r.codigo }}">Cancelar</button>
+                </div>
+              {% else %}
+                <span class="muted small">—</span>
+              {% endif %}
+            </td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="10">
+              <div class="vacio-estado">
+                <div class="titulo">Sin reservas con estos filtros</div>
+                Ajuste la búsqueda o cree una nueva reserva.
+              </div>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if is_paginated %}
+    <div class="flex mt-2">
+      {% if page_obj.has_previous %}
+        <a class="btn-r mini" href="?{{ filtros.urlencode }}&page={{ page_obj.previous_page_number }}">← Anterior</a>
+      {% endif %}
+      <span class="small muted">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }} · {{ page_obj.paginator.count }} reservas</span>
+      {% if page_obj.has_next %}
+        <a class="btn-r mini" href="?{{ filtros.urlencode }}&page={{ page_obj.next_page_number }}">Siguiente →</a>
+      {% endif %}
+    </div>
+  {% endif %}
+{% endblock content %}
+
+{% block modal %}
+  <div class="modal fade" id="modalReprogramar" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <form class="modal-content form-r" method="post">
+        {% csrf_token %}
+        <div class="modal-header">
+          <h5 class="modal-title">Reprogramar <span class="js-codigo code"></span></h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body">
+          <div class="form-grid">
+            <div class="campo">
+              <label>Nueva salida</label>
+              {{ reprogramar_form.nueva_fecha_salida }}
+            </div>
+            <div class="campo">
+              <label>Nuevo retorno</label>
+              {{ reprogramar_form.nueva_fecha_retorno }}
+            </div>
+            <div class="campo ancho">
+              <label>Motivo</label>
+              {{ reprogramar_form.motivo }}
+            </div>
+          </div>
+          <p class="small muted">Se valida disponibilidad en las nuevas fechas excluyendo esta misma reserva.</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-r" data-bs-dismiss="modal">Cerrar</button>
+          <button type="submit" class="btn-r primario">Reprogramar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal fade" id="modalCancelar" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <form class="modal-content form-r" method="post">
+        {% csrf_token %}
+        <div class="modal-header">
+          <h5 class="modal-title">Cancelar <span class="js-codigo code"></span></h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body">
+          <div class="campo">
+            <label>Motivo de cancelación</label>
+            {{ cancelar_form.motivo }}
+          </div>
+          <p class="small muted">Los equipos asignados quedan liberados si ninguna otra reserva activa los usa.</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-r" data-bs-dismiss="modal">Cerrar</button>
+          <button type="submit" class="btn-r peligro">Cancelar reserva</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal fade" id="modalRetorno" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <form class="modal-content form-r" method="post">
+        {% csrf_token %}
+        <div class="modal-header">
+          <h5 class="modal-title">Confirmar retorno de <span class="js-codigo code"></span></h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body">
+          <div class="campo">
+            <label>Estado del kit</label>
+            {{ retorno_form.estado_kit }}
+          </div>
+          <div class="campo">
+            <label>Notas</label>
+            {{ retorno_form.notas }}
+          </div>
+          <label class="flex" style="text-transform:none;letter-spacing:0;font-size:12.5px">
+            {{ retorno_form.requiere_preparacion }} Requiere preparación (lavado/revisión · bloquea +1 día)
+          </label>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-r" data-bs-dismiss="modal">Cerrar</button>
+          <button type="submit" class="btn-r verde">Confirmar retorno</button>
+        </div>
+      </form>
+    </div>
+  </div>
+{% endblock modal %}
+
+{% block inline_javascript %}
+  <script>
+    window.addEventListener('DOMContentLoaded', () => {
+      document.querySelectorAll('.js-accion').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const modal = document.querySelector(btn.dataset.modal);
+          modal.querySelector('form').action = btn.dataset.url;
+          modal.querySelector('.js-codigo').textContent = btn.dataset.codigo;
+          bootstrap.Modal.getOrCreateInstance(modal).show();
+        });
+      });
+    });
+  </script>
+{% endblock inline_javascript %}

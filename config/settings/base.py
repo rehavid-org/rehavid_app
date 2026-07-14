@@ -1,4 +1,4 @@
-# ruff: noqa: ERA001, E501
+# ruff: noqa: ERA001
 """Base settings to build other settings files upon."""
 
 from pathlib import Path
@@ -206,6 +206,7 @@ TEMPLATES = [
                 "django.template.context_processors.tz",
                 "django.contrib.messages.context_processors.messages",
                 "rehavid_app.users.context_processors.allauth_settings",
+                "rehavid_app.users.menu.sidebar_menu",
             ],
         },
     },

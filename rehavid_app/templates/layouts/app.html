@@ -1,0 +1,98 @@
+{% load static %}<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <title>
+      {% block title %}REHAVID Operaciones{% endblock title %}
+    </title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Plataforma de operaciones Rehavid S.A.S." />
+    <link rel="icon" href="{% static 'images/favicons/favicon.ico' %}" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap"
+          rel="stylesheet" />
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.2.3/css/bootstrap.min.css"
+          integrity="sha512-SbiR/eusphKoMVVXysTKG/7VseWii+Y3FdHrt0EpKgpToZeemhqHeZeLWLhJutz/2ut2Vw1uQEj2MbRF+TVBUA=="
+          crossorigin="anonymous"
+          referrerpolicy="no-referrer" />
+    <link href="{% static 'css/rehavid.css' %}" rel="stylesheet" />
+    {% block css %}{% endblock css %}
+    <script defer
+            src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.2.3/js/bootstrap.min.js"
+            integrity="sha512-1/RvZTcCDEUjY/CypiMz+iqqtaoQfAITmNSJY17Myp4Ms5mdxPS5UV7iOfdZoxcGhzFbOm6sntTKJppjvuhg4g=="
+            crossorigin="anonymous"
+            referrerpolicy="no-referrer"></script>
+  </head>
+  <body class="rehavid">
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="glyph">R</div>
+          <div>
+            <div class="nombre">REHAVID</div>
+            <div class="sub">Operaciones</div>
+          </div>
+        </div>
+        <nav aria-label="Menú principal">
+          {% regroup menu_items by seccion as secciones %}
+          {% for seccion in secciones %}
+            <div class="menu-seccion">{{ seccion.grouper }}</div>
+            {% for item in seccion.list %}
+              <a class="menu-item {% if item.modulo == modulo_activo %}activo{% endif %}"
+                 href="{{ item.url }}"
+                 data-modulo="{{ item.modulo }}">
+                <span>{{ item.etiqueta }}</span>
+                {% if item.modulo == "mis-solicitudes" or item.modulo == "reservas" %}
+                  <span class="menu-badge d-none" data-badge="{{ item.modulo }}"></span>
+                {% endif %}
+              </a>
+            {% endfor %}
+          {% endfor %}
+        </nav>
+        <footer>
+          <div class="avatar">{{ request.user.name|default:request.user.email|slice:":1"|upper }}</div>
+          <div class="quien">
+            <div class="nombre">{{ request.user.name|default:request.user.email }}</div>
+            <div class="rol">{{ request.user.rol_descriptivo|default:request.user.get_nivel_display }}</div>
+          </div>
+          <a class="salir" href="{% url 'account_logout' %}">Salir</a>
+        </footer>
+      </aside>
+      <main class="app-main">
+        <div class="page-head">
+          <div>
+            <div class="miga">
+              {% block miga %}Operaciones{% endblock miga %}
+            </div>
+            <h1>
+              {% block titulo %}{% endblock titulo %}
+            </h1>
+          </div>
+          <div class="acciones">
+            {% block acciones %}{% endblock acciones %}
+          </div>
+        </div>
+        {% block content %}{% endblock content %}
+      </main>
+    </div>
+    {% if messages %}
+      <div class="toasts" role="status">
+        {% for message in messages %}
+          <div class="toast-r {{ message.tags }}">
+            <span class="grow">{{ message }}</span>
+            <button type="button" aria-label="Cerrar" onclick="this.parentElement.remove()">×</button>
+          </div>
+        {% endfor %}
+      </div>
+      <script>
+        window.addEventListener('DOMContentLoaded', () => {
+          setTimeout(() => document.querySelectorAll('.toast-r').forEach((t) => t.remove()), 7000);
+        });
+      </script>
+    {% endif %}
+    {% block modal %}{% endblock modal %}
+    {% block inline_javascript %}{% endblock inline_javascript %}
+  </body>
+</html>

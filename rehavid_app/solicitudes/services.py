@@ -10,18 +10,22 @@ Correcciones aplicadas al portar:
 from datetime import datetime
 from datetime import time
 from datetime import timedelta
+from typing import TYPE_CHECKING
 
 from django.db import transaction
 from django.utils import timezone
 
 from rehavid_app.auditoria import services as auditoria
 from rehavid_app.reservas import services as reservas_service
-from rehavid_app.reservas.models import Reserva
+from rehavid_app.users.models import Nivel
 
 from .models import AccesorioSolicitado
 from .models import EstadoSolicitud
 from .models import Observacion
 from .models import Solicitud
+
+if TYPE_CHECKING:
+    from rehavid_app.reservas.models import Reserva
 
 # O17 · destinatarios de la notificación de solicitud nueva
 NOTIFICAR_A = ["operaciones@rehavid.com.co", "liliana.hernandez@rehavid.com.co"]
@@ -34,7 +38,7 @@ class SolicitudError(Exception):
 
 
 @transaction.atomic
-def crear_solicitud(
+def crear_solicitud(  # noqa: PLR0913
     *,
     solicitante,
     empresa_cliente,
@@ -108,7 +112,7 @@ def cancelar_solicitud(solicitud: Solicitud, motivo: str, usuario) -> Solicitud:
 
     if (
         solicitud.estado == EstadoSolicitud.CONFIRMADA
-        and usuario.nivel == 4
+        and usuario.nivel == Nivel.SOLICITANTE
         and not puede_cancelar_48h(solicitud)
     ):
         msg = "No se puede cancelar · faltan menos de 48 horas para el servicio. Contacte al coordinador."

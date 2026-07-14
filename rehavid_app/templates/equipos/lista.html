@@ -1,0 +1,280 @@
+{% extends "layouts/app.html" %}
+
+{% block title %}Equipos · REHAVID{% endblock title %}
+{% block miga %}Operación · Inventario{% endblock miga %}
+{% block titulo %}Equipos de medición{% endblock titulo %}
+{% block acciones %}
+  {% if request.user.nivel <= 2 %}
+    <a class="btn-r primario" href="{% url 'equipos:alta' %}">+ Agregar equipo</a>
+  {% endif %}
+{% endblock acciones %}
+
+{% block content %}
+  <div class="kpi-grid">
+    <div class="kpi good">
+      <div class="tag">Disponibles / total</div>
+      <div class="value">{{ kpi_disponibles }} <span class="unidad">/ {{ kpi_total }}</span></div>
+      <div class="sub">unidades operativas del inventario</div>
+    </div>
+    <div class="kpi accent">
+      <div class="tag">En uso</div>
+      <div class="value">{{ kpi_en_uso }}</div>
+      <div class="sub">despachados en campo</div>
+    </div>
+    <div class="kpi warn">
+      <div class="tag">En preparación</div>
+      <div class="value">{{ kpi_preparacion }}</div>
+      <div class="sub">lavado / revisión post-retorno</div>
+    </div>
+    <div class="kpi">
+      <div class="tag">Software sin stock</div>
+      <div class="value">{{ servicios_sin_stock|length }}</div>
+      <div class="sub">licencias siempre disponibles</div>
+    </div>
+  </div>
+
+  <form class="filtros form-r" method="get">
+    <div class="campo grow">
+      <label for="f-q">Buscar</label>
+      <input id="f-q" type="text" name="q" value="{{ filtros.q }}" placeholder="Código, serial o modelo…" />
+    </div>
+    <div class="campo">
+      <label for="f-servicio">Categoría</label>
+      <select id="f-servicio" name="servicio">
+        <option value="">Todas</option>
+        {% for s in servicios %}
+          <option value="{{ s.pk }}" {% if filtros.servicio == s.pk|stringformat:"s" %}selected{% endif %}>{{ s.nombre }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="campo">
+      <label for="f-estado">Estado</label>
+      <select id="f-estado" name="estado">
+        <option value="">Todos</option>
+        {% for valor, etiqueta in estados %}
+          <option value="{{ valor }}" {% if filtros.estado == valor %}selected{% endif %}>{{ etiqueta }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <button class="btn-r" type="submit">Filtrar</button>
+  </form>
+
+  <div class="equipos-grid">
+    {% for s in servicios_sin_stock %}
+      <div class="equipo-card tumeke">
+        <span class="codigo">SOFTWARE</span>
+        <span class="modelo">{{ s.nombre }}</span>
+        <span class="meta">{{ s.descripcion|default:"Licencia de análisis, sin unidad física" }}</span>
+        <div class="pie">
+          <span class="chip disponible">Siempre disponible</span>
+        </div>
+      </div>
+    {% endfor %}
+    {% for e in equipos %}
+      <div class="equipo-card">
+        <span class="codigo">{{ e.codigo }} · SN {{ e.serial }}</span>
+        <span class="modelo">{{ e.modelo }}</span>
+        <span class="meta">{{ e.servicio.nombre }} · {{ e.ciudad_base.nombre }} · {{ e.historial_uso }} usos</span>
+        <div class="pie">
+          <span class="chip {{ e.estado }}">{{ e.get_estado_display }}</span>
+          <button class="btn-r mini js-ficha" data-id="{{ e.pk }}">Ficha</button>
+        </div>
+      </div>
+    {% empty %}
+      <div class="vacio-estado" style="grid-column:1/-1">
+        <div class="titulo">Sin equipos con estos filtros</div>
+      </div>
+    {% endfor %}
+  </div>
+
+  <div class="tabla-wrap">
+    <table class="tabla-r">
+      <thead>
+        <tr>
+          <th>Código</th>
+          <th>Categoría</th>
+          <th>Modelo</th>
+          <th>Serial</th>
+          <th>Ciudad base</th>
+          <th>Estado</th>
+          <th class="tar">Usos</th>
+          <th>Próx. mantención</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for e in equipos %}
+          <tr>
+            <td><span class="code">{{ e.codigo }}</span></td>
+            <td>{{ e.servicio.nombre }}</td>
+            <td>{{ e.modelo }}</td>
+            <td><span class="code">{{ e.serial }}</span></td>
+            <td>{{ e.ciudad_base.nombre }}</td>
+            <td><span class="chip {{ e.estado }}">{{ e.get_estado_display }}</span></td>
+            <td class="tar">{{ e.historial_uso }}</td>
+            <td>{{ e.proxima_mantencion|date:"d M Y"|default:"—" }}</td>
+            <td>
+              <div class="flex" style="gap:4px">
+                <button class="btn-r mini js-ficha" data-id="{{ e.pk }}">Ficha</button>
+                {% if request.user.nivel <= 2 %}
+                  {% if e.estado == "en_preparacion" %}
+                    <button class="btn-r mini verde js-accion"
+                            data-modal="#modalListo"
+                            data-url="{% url 'equipos:listo' e.pk %}"
+                            data-codigo="{{ e.codigo }}">Listo</button>
+                  {% endif %}
+                  {% if e.estado != "de_baja" and e.estado != "en_mantenimiento" %}
+                    <button class="btn-r mini js-accion"
+                            data-modal="#modalMantenimiento"
+                            data-url="{% url 'equipos:mantenimiento' e.pk %}"
+                            data-codigo="{{ e.codigo }}">Mantenimiento</button>
+                  {% endif %}
+                {% endif %}
+                {% if request.user.nivel == 1 and e.estado != "de_baja" %}
+                  <button class="btn-r mini peligro js-accion"
+                          data-modal="#modalBaja"
+                          data-url="{% url 'equipos:baja' e.pk %}"
+                          data-codigo="{{ e.codigo }}">Baja</button>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endblock content %}
+
+{% block modal %}
+  <div class="modal fade" id="modalFicha" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Ficha del equipo <span class="js-codigo code"></span></h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body" id="ficha-body">
+          <p class="muted">Cargando…</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="modalListo" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <form class="modal-content form-r" method="post">
+        {% csrf_token %}
+        <div class="modal-header">
+          <h5 class="modal-title">Marcar listo <span class="js-codigo code"></span></h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body">
+          <div class="campo">
+            <label>Notas de la preparación</label>
+            {{ listo_form.notas }}
+          </div>
+          <p class="small muted">El equipo vuelve a disponible y se actualiza su última revisión.</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-r" data-bs-dismiss="modal">Cerrar</button>
+          <button type="submit" class="btn-r verde">Marcar listo</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal fade" id="modalMantenimiento" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <form class="modal-content form-r" method="post">
+        {% csrf_token %}
+        <div class="modal-header">
+          <h5 class="modal-title">Enviar a mantenimiento <span class="js-codigo code"></span></h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body">
+          <div class="campo">
+            <label>Motivo</label>
+            {{ mantenimiento_form.motivo }}
+          </div>
+          <p class="small muted">Mientras esté en mantenimiento el equipo no entra en disponibilidad.</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-r" data-bs-dismiss="modal">Cerrar</button>
+          <button type="submit" class="btn-r primario">Enviar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal fade" id="modalBaja" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <form class="modal-content form-r" method="post">
+        {% csrf_token %}
+        <div class="modal-header">
+          <h5 class="modal-title">Baja definitiva <span class="js-codigo code"></span></h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body">
+          <div class="campo">
+            <label>Motivo de la baja</label>
+            {{ baja_form.motivo }}
+          </div>
+          <p class="small muted">Acción irreversible. Bloqueada si el equipo tiene reservas activas.</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-r" data-bs-dismiss="modal">Cerrar</button>
+          <button type="submit" class="btn-r peligro">Dar de baja</button>
+        </div>
+      </form>
+    </div>
+  </div>
+{% endblock modal %}
+
+{% block inline_javascript %}
+  <script>
+    window.addEventListener('DOMContentLoaded', () => {
+      document.querySelectorAll('.js-accion').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const modal = document.querySelector(btn.dataset.modal);
+          modal.querySelector('form').action = btn.dataset.url;
+          modal.querySelector('.js-codigo').textContent = btn.dataset.codigo;
+          bootstrap.Modal.getOrCreateInstance(modal).show();
+        });
+      });
+
+      const modalFicha = document.getElementById('modalFicha');
+      const fichaBody = document.getElementById('ficha-body');
+      document.querySelectorAll('.js-ficha').forEach((btn) => {
+        btn.addEventListener('click', async () => {
+          fichaBody.innerHTML = '<p class="muted">Cargando…</p>';
+          bootstrap.Modal.getOrCreateInstance(modalFicha).show();
+          try {
+            const res = await fetch(`/api/equipos/${btn.dataset.id}/ficha/`, { credentials: 'same-origin' });
+            const d = await res.json();
+            modalFicha.querySelector('.js-codigo').textContent = d.codigo;
+            fichaBody.innerHTML = `
+              <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr)">
+                <div class="kpi"><div class="tag">Usos históricos</div><div class="value">${d.historial_uso}</div></div>
+                <div class="kpi"><div class="tag">Reservas activas</div><div class="value">${d.reservas_activas}</div></div>
+                <div class="kpi"><div class="tag">Estado</div><div class="value" style="font-size:15px">${d.estado_display}</div></div>
+              </div>
+              <table class="tabla-r">
+                <tr><th>Modelo</th><td>${d.modelo}</td></tr>
+                <tr><th>Serial</th><td><span class="code">${d.serial}</span></td></tr>
+                <tr><th>Categoría</th><td>${d.servicio}</td></tr>
+                <tr><th>Ciudad base</th><td>${d.ciudad_base}</td></tr>
+                <tr><th>Responsable</th><td>${d.responsable || '—'}</td></tr>
+                <tr><th>Última revisión</th><td>${d.ultima_revision || '—'}</td></tr>
+                <tr><th>Próxima mantención</th><td>${d.proxima_mantencion || '—'}</td></tr>
+                <tr><th>Próxima reserva</th><td>${d.proxima_reserva || 'Sin reservas futuras'}</td></tr>
+                <tr><th>Accesorios</th><td>${(d.accesorios || []).map((a) => `${a.nombre} ×${a.cantidad}`).join(', ') || '—'}</td></tr>
+                <tr><th>Notas</th><td>${d.notas || '—'}</td></tr>
+              </table>`;
+          } catch (e) {
+            fichaBody.innerHTML = '<p class="error">No fue posible cargar la ficha.</p>';
+          }
+        });
+      });
+    });
+  </script>
+{% endblock inline_javascript %}

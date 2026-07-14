@@ -1,0 +1,56 @@
+{% extends "layouts/app.html" %}
+
+{% block title %}Paquetes · REHAVID{% endblock title %}
+{% block miga %}Operación · Paquetes{% endblock miga %}
+{% block titulo %}Paquetes multi-equipo{% endblock titulo %}
+{% block acciones %}
+  {% if request.user.nivel <= 2 %}
+    <a class="btn-r primario" href="{% url 'paquetes:nuevo' %}">+ Nuevo paquete</a>
+  {% endif %}
+{% endblock acciones %}
+
+{% block content %}
+  <div class="paquetes-grid">
+    {% for t in tarjetas %}
+      <div class="paquete-card {{ t.estado }}">
+        <div class="flex-between">
+          <span class="codigo">{{ t.paquete.codigo }}</span>
+          {% if t.estado == "disponible" %}
+            <span class="chip ok">Disponible hoy</span>
+          {% elif t.estado == "parcial" %}
+            <span class="chip pendiente">Parcial · {{ t.libres }}/{{ t.total }}</span>
+          {% else %}
+            <span class="chip cancelada">Sin stock</span>
+          {% endif %}
+        </div>
+        <h3>{{ t.paquete.nombre }}</h3>
+        <p class="small muted">{{ t.paquete.descripcion }}</p>
+        <ul class="componentes">
+          {% for d in t.detalle %}
+            <li>
+              <span>{{ d.categoria }}</span>
+              <span class="{% if d.disponible %}chip ok{% else %}chip cancelada{% endif %}">
+                {% if d.disponible %}✓{% else %}✕{% endif %}
+              </span>
+            </li>
+          {% endfor %}
+        </ul>
+        <div class="small muted">
+          Duración típica: {{ t.paquete.duracion_dias }} día{{ t.paquete.duracion_dias|pluralize }}
+          {% if t.proxima %}· Disponible completo desde <strong>{{ t.proxima|date:"d M Y" }}</strong>{% endif %}
+        </div>
+        {% if request.user.nivel <= 2 %}
+          <div class="flex mt-1" style="gap:6px">
+            <a class="btn-r mini" href="{% url 'paquetes:editar' t.paquete.pk %}">Editar</a>
+            <a class="btn-r mini peligro" href="{% url 'paquetes:eliminar' t.paquete.pk %}">Eliminar</a>
+          </div>
+        {% endif %}
+      </div>
+    {% empty %}
+      <div class="vacio-estado" style="grid-column:1/-1">
+        <div class="titulo">No hay paquetes activos</div>
+        {% if request.user.nivel <= 2 %}Cree el primero con “Nuevo paquete”.{% endif %}
+      </div>
+    {% endfor %}
+  </div>
+{% endblock content %}

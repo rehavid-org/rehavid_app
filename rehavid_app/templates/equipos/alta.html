@@ -1,0 +1,47 @@
+{% extends "layouts/app.html" %}
+
+{% block title %}Agregar equipo · REHAVID{% endblock title %}
+{% block miga %}Operación · Inventario{% endblock miga %}
+{% block titulo %}Agregar equipo{% endblock titulo %}
+{% block acciones %}
+  <a class="btn-r" href="{% url 'equipos:lista' %}">← Volver a equipos</a>
+{% endblock acciones %}
+
+{% block content %}
+  <div class="row">
+    <div class="col-lg-7">
+      <form class="card-r form-r" method="post">
+        {% csrf_token %}
+        {% if form.non_field_errors %}
+          <div class="errores-form">{{ form.non_field_errors }}</div>
+        {% endif %}
+        <p class="card-titulo">Identificación (modelo canónico del inventario)</p>
+        <div class="form-grid">
+          {% for campo in form %}
+            <div class="campo {% if campo.name == 'notas' %}ancho{% endif %}">
+              <label for="{{ campo.id_for_label }}">{{ campo.label }}</label>
+              {{ campo }}
+              {% if campo.help_text %}<div class="ayuda">{{ campo.help_text }}</div>{% endif %}
+              {% if campo.errors %}<div class="error">{{ campo.errors.0 }}</div>{% endif %}
+            </div>
+          {% endfor %}
+        </div>
+        <div class="flex mt-2">
+          <button class="btn-r primario" type="submit">Agregar al inventario</button>
+          <a class="btn-r" href="{% url 'equipos:lista' %}">Descartar</a>
+        </div>
+      </form>
+    </div>
+    <div class="col-lg-5">
+      <div class="panel-destacado">
+        <p class="card-titulo">Cómo entra en disponibilidad</p>
+        <p class="small">
+          El equipo nace <strong>disponible</strong> y participa de inmediato en la
+          verificación de stock de su categoría. El código sigue el patrón de la
+          categoría (p. ej. <span class="code">XS-03</span> para Xsens) y el serial
+          debe ser único.
+        </p>
+      </div>
+    </div>
+  </div>
+{% endblock content %}

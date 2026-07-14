@@ -1,0 +1,22 @@
+{% extends "layouts/app.html" %}
+
+{% block title %}Eliminar paquete · REHAVID{% endblock title %}
+{% block miga %}Operación · Paquetes{% endblock miga %}
+{% block titulo %}Eliminar {{ object.codigo }}{% endblock titulo %}
+
+{% block content %}
+  <div class="card-r" style="max-width:560px">
+    <p>
+      ¿Eliminar el paquete <strong>{{ object.codigo }} · {{ object.nombre }}</strong>?
+    </p>
+    <p class="small muted">
+      Si el paquete tiene reservas históricas no se borra: se desactiva y deja de
+      ofrecerse, conservando la trazabilidad.
+    </p>
+    <form method="post" class="flex mt-2">
+      {% csrf_token %}
+      <button type="submit" class="btn-r peligro">Eliminar paquete</button>
+      <a class="btn-r" href="{% url 'paquetes:lista' %}">Volver sin eliminar</a>
+    </form>
+  </div>
+{% endblock content %}

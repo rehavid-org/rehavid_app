@@ -11,20 +11,23 @@ from dataclasses import dataclass
 from dataclasses import field
 from datetime import date
 from datetime import timedelta
+from typing import TYPE_CHECKING
 
 from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
 
 from rehavid_app.auditoria import services as auditoria
-from rehavid_app.catalogo.models import Servicio
 from rehavid_app.equipos.models import Equipo
 from rehavid_app.equipos.models import EstadoEquipo
-from rehavid_app.paquetes.models import Paquete
 
 from .models import ConfirmacionRetorno
 from .models import HistorialReserva
 from .models import Reserva
+
+if TYPE_CHECKING:
+    from rehavid_app.catalogo.models import Servicio
+    from rehavid_app.paquetes.models import Paquete
 
 ESTADOS_BLOQUEADOS = (
     EstadoEquipo.EN_MANTENIMIENTO,
@@ -72,6 +75,7 @@ def verificar_disponibilidad(
     servicio: Servicio,
     fecha_salida: date,
     fecha_retorno: date,
+    *,
     excluir_reservas: list[int] | None = None,
     para_actualizar: bool = False,
 ) -> Disponibilidad:
@@ -81,20 +85,20 @@ def verificar_disponibilidad(
     una transacción al crear/reprogramar).
     """
     if not servicio.requiere_equipo_fisico:
-        return Disponibilidad(True, f"{servicio.nombre} no requiere equipo físico")
+        return Disponibilidad(disponible=True, motivo=f"{servicio.nombre} no requiere equipo físico")
 
     equipos_cat = Equipo.objects.filter(servicio=servicio)
     if para_actualizar:
         equipos_cat = equipos_cat.select_for_update()
     equipos_cat = list(equipos_cat)
     if not equipos_cat:
-        return Disponibilidad(False, f'No hay equipos del tipo "{servicio.nombre}" en el inventario')
+        return Disponibilidad(disponible=False, motivo=f'No hay equipos del tipo "{servicio.nombre}" en el inventario')
 
     equipos_op = [e for e in equipos_cat if e.estado not in ESTADOS_BLOQUEADOS]
     if not equipos_op:
         return Disponibilidad(
-            False,
-            f'Todos los equipos "{servicio.nombre}" están en mantenimiento, tránsito o de baja',
+            disponible=False,
+            motivo=f'Todos los equipos "{servicio.nombre}" están en mantenimiento, tránsito o de baja',
         )
 
     reservas_activas = (
@@ -112,13 +116,13 @@ def verificar_disponibilidad(
     libres = [e for e in equipos_op if e.pk not in ocupados]
     if not libres:
         return Disponibilidad(
-            False,
-            f'Stock agotado · todos los equipos "{servicio.nombre}" ({len(equipos_cat)} en total) '
+            disponible=False,
+            motivo=f'Stock agotado · todos los equipos "{servicio.nombre}" ({len(equipos_cat)} en total) '
             f"están reservados o en preparación en el rango {fecha_salida} → {fecha_retorno}",
         )
     return Disponibilidad(
-        True,
-        f"{len(libres)} de {len(equipos_cat)} equipos disponibles",
+        disponible=True,
+        motivo=f"{len(libres)} de {len(equipos_cat)} equipos disponibles",
         equipos_libres=libres,
     )
 
@@ -127,6 +131,7 @@ def verificar_disponibilidad_paquete(
     paquete: Paquete,
     fecha_salida: date,
     fecha_retorno: date,
+    *,
     excluir_reservas: list[int] | None = None,
     para_actualizar: bool = False,
 ) -> dict:
@@ -166,7 +171,7 @@ def proxima_fecha_disponible(servicio: Servicio, duracion_dias: int = 1, horizon
 # R003 + R008 · Crear
 # ────────────────────────────────────────────────────────────
 @transaction.atomic
-def crear_reserva(
+def crear_reserva(  # noqa: PLR0913
     *,
     servicio: Servicio,
     cliente,

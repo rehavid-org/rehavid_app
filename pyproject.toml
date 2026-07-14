@@ -84,6 +84,8 @@ extend-exclude = [
   "*/migrations/*.py",
   "staticfiles/*",
 ]
+# Misma norma que djLint (max_line_length = 119)
+line-length = 119
 
 lint.select = [
   "A",
@@ -144,6 +146,8 @@ lint.ignore = [
   # https://github.com/astral-sh/ruff/issues/7871
 ]
 lint.isort.force-single-line = true
+# En tests: booleanos posicionales, valores mágicos y contraseñas de fixture son idiomáticos
+lint.per-file-ignores = { "**/tests/*" = [ "FBT", "PLR2004", "S106" ] }
 
 # ==== pyproject-fmt ====
 [tool.pyproject-fmt]

@@ -190,7 +190,7 @@ def test_reprogramar_cancelada_falla(contexto, operador):
 # ────────────────────────────────────────────────────────────
 def test_retorno_ok_disponibiliza_y_suma_uso(contexto, operador):
     reserva = _crear(contexto, operador)
-    svc.confirmar_retorno(reserva, "OK", "todo bien", False, operador)  # noqa: FBT003
+    svc.confirmar_retorno(reserva, "OK", "todo bien", False, operador)
     contexto["equipo"].refresh_from_db()
     assert contexto["equipo"].estado == EstadoEquipo.DISPONIBLE
     assert contexto["equipo"].historial_uso == 1
@@ -200,7 +200,7 @@ def test_retorno_ok_disponibiliza_y_suma_uso(contexto, operador):
 def test_retorno_con_preparacion_bloquea_un_dia_extra(contexto, operador):
     """El equipo con preparación pendiente sigue ocupado +1 día (R003)."""
     reserva = _crear(contexto, operador, 3, 5)
-    svc.confirmar_retorno(reserva, "OK", "lavar camisetas", True, operador)  # noqa: FBT003
+    svc.confirmar_retorno(reserva, "OK", "lavar camisetas", True, operador)
     contexto["equipo"].refresh_from_db()
     assert contexto["equipo"].estado == EstadoEquipo.EN_PREPARACION
 
@@ -218,7 +218,7 @@ def test_retorno_con_preparacion_bloquea_un_dia_extra(contexto, operador):
 
 def test_marcar_listo_completa_preparacion(contexto, operador):
     reserva = _crear(contexto, operador)
-    svc.confirmar_retorno(reserva, "OK", "", True, operador)  # noqa: FBT003
+    svc.confirmar_retorno(reserva, "OK", "", True, operador)
     contexto["equipo"].refresh_from_db()
     svc.marcar_equipo_listo(contexto["equipo"], "lavado listo", operador)
     contexto["equipo"].refresh_from_db()
@@ -235,9 +235,9 @@ def test_marcar_listo_sin_preparacion_falla(contexto, operador):
 
 def test_retorno_doble_falla(contexto, operador):
     reserva = _crear(contexto, operador)
-    svc.confirmar_retorno(reserva, "OK", "", False, operador)  # noqa: FBT003
+    svc.confirmar_retorno(reserva, "OK", "", False, operador)
     with pytest.raises(svc.ReservaError, match="ya tiene retorno"):
-        svc.confirmar_retorno(reserva, "OK", "", False, operador)  # noqa: FBT003
+        svc.confirmar_retorno(reserva, "OK", "", False, operador)
 
 
 # ────────────────────────────────────────────────────────────
@@ -324,7 +324,7 @@ def test_baja_bloqueada_con_reserva_activa(contexto, operador):
 
 def test_baja_ok_tras_retorno(contexto, operador):
     reserva = _crear(contexto, operador)
-    svc.confirmar_retorno(reserva, "OK", "", False, operador)  # noqa: FBT003
+    svc.confirmar_retorno(reserva, "OK", "", False, operador)
     equipo = svc.dar_de_baja_equipo(contexto["equipo"], "obsoleto", operador)
     assert equipo.estado == EstadoEquipo.DE_BAJA
     assert equipo.fecha_baja == HOY()

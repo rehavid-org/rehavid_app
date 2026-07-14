@@ -113,7 +113,7 @@ class Command(BaseCommand):
                 )
 
     # ────────────────────────────────────────────────────────
-    def _seed_users(self, users) -> dict[str, "User"]:
+    def _seed_users(self, users) -> dict[str, User]:
         por_nombre = {}
         for u in users:
             email = u["email"].lower()

@@ -87,4 +87,4 @@ class Accesorio(models.Model):
         verbose_name_plural = "accesorios"
 
     def __str__(self):
-        return f"{self.nombre} ×{self.cantidad}"
+        return f"{self.nombre} ×{self.cantidad}"  # noqa: RUF001

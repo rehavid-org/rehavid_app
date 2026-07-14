@@ -27,17 +27,18 @@ Bitácora de avance contra `PLAN_MIGRACION.md`. **Retomar por "PRÓXIMO PASO" ab
 - `auditoria/services.py`: `registrar()`.
 - **38 tests pasando** (`pytest rehavid_app/reservas rehavid_app/solicitudes`), incluida concurrencia real con threads (2 reservas simultáneas al último equipo → una falla).
 
-## ⏳ Fase 4 · Vistas operación interna + API — NO INICIADA ← **PRÓXIMO PASO**
-Plan (sección 4 de PLAN_MIGRACION.md):
-1. Layout base: sidebar por nivel usando `user.modulos` (context processor o template tag), design tokens de `seed_data/DESIGN_TOKENS.md` (morado #4025CE, verde #02E577, fuente Outfit), Bootstrap 5 + crispy ya instalados. Usar skill `frontend-design`.
-2. Vistas Reservas: tabla con filtros, **formulario Nueva Reserva** (B3) con preview de disponibilidad en vivo, acciones reprogramar/cancelar/retorno como modales gateados por `NivelRequeridoMixin(nivel_maximo=2)` (B1). Los servicios de negocio YA existen — las vistas solo los llaman.
-3. Vistas Equipos: grid+tabla, KPI disponibles/total (O02), ficha modal (O04), acciones listo/mantenimiento/baja, tarjeta Tumeke (O07), alta con modelo canónico (B7).
-4. Paquetes: tarjetas tri-estado (O09, usar `verificar_disponibilidad_paquete` + `proxima_fecha_disponible`) + CRUD nivel ≤2 (O20/B11).
-5. Calendario 12 meses server-rendered.
-6. API DRF espejo del contrato JS (sección 1 del plan) en `config/api_router.py` + serializers por app.
-7. Tests de matriz de acceso vista×nivel.
+## ✅ Fase 4 · Vistas operación interna + API — COMPLETA
+- **Layout**: `templates/layouts/app.html` (sidebar fijo morado #2A1788 por secciones, chip usuario, toasts) + `static/css/rehavid.css` con TODOS los tokens del manual v8 (rampa ink morada, chips de estados, KPI planas, escala del calendario). Menú por nivel: registro central `users/menu.py` (context processor `sidebar_menu`); módulos de fases 5-6 apuntan a `ModuloEnMigracionView` (placeholder gateado por módulo) para que la navegación y la matriz de permisos ya existan. Login rebrandeado (`allauth/layouts/entrance.html`, panel izquierdo brand-dark).
+- **Home/redirect por nivel** (`users:redirect`): 1-2 → reservas, 3 → calendario, 4 → portal. `path("")` redirige ahí.
+- **Reservas** (`reservas/views.py`, nivel ≤2): lista con filtros (q/servicio/ciudad/estado/rango) + paginación; **Nueva Reserva (B3)** servicio o paquete con preview de disponibilidad en vivo (fetch a la API); reprogramar/cancelar/retorno como modales POST (B1 — server-side). Reserva de paquete guarda `servicio = primer servicio del paquete` (mismo criterio de los tests de Fase 3).
+- **Equipos** (nivel ≤3; mutaciones ≤2, baja solo 1): KPI O02, grid + tabla, tarjeta Tumeke (O07 — servicios `requiere_equipo_fisico=False`), ficha modal O04 vía `/api/equipos/{id}/ficha/`, alta canónica B7 (`EquipoCreateView`, registra auditoría).
+- **Paquetes**: tarjetas tri-estado O09 (`estado_paquete()` en `paquetes/views.py`: disponible/parcial/agotado + próxima fecha estimada) + CRUD nivel ≤2 (B11/O20). Eliminar con reservas históricas ⇒ desactiva en vez de borrar.
+- **Calendario** (`analitica/views.py::CalendarioView`, todos los niveles): 12 meses server-rendered, densidad por día (escala del manual), detalle por día vía `?dia=`, filtro por servicio.
+- **API DRF** (`config/api_router.py`): `ReservaViewSet` (list/create ≤2 · `disponibilidad` GET ≤4 para O10 · cancelar/reprogramar/retorno POST ≤2), `EquipoViewSet` (list/ficha ≤3 · create/listo/mantenimiento ≤2 · baja 1), `PaqueteViewSet` (lectura+disponibilidad ≤3 · CRUD ≤2). Errores de negocio → 400 con `detail`.
+- **Tests**: 137 en verde. Nuevos: `users/tests/test_matriz_acceso.py` (matriz vista×nivel + API) y `reservas/tests/test_views.py` (flujo crear→reprogramar→retorno→listo, cancelar libera, filtros). Smoke real contra seed: todas las vistas 200/403 correctos con jhon (n2), liliana (n3), monica (n4).
+- **Lint**: `ruff check` limpio. `line-length = 119` (alineado a djLint) y per-file-ignores para tests en `pyproject.toml`.
 
-## ⏳ Fase 5 · Portal solicitante — NO INICIADA
+## ⏳ Fase 5 · Portal solicitante — NO INICIADA ← **PRÓXIMO PASO**
 Servicios listos; faltan vistas: formulario solicitud (O16 accesorios dinámicos desde `AccesorioTipo`, O19 profesional, O10 preview saturación, fecha mínima hoy+7), mis solicitudes, bandeja operador + badge (polling a endpoint `contar_pendientes`), botón Atender → `atender_solicitud`.
 
 ## ⏳ Fase 6 · Analítica/predictivo/alertas/planes/admin — NO INICIADA

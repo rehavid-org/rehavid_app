@@ -79,13 +79,20 @@ class TestUserUpdateView:
 
 
 class TestUserRedirectView:
-    def test_get_redirect_url(self, user: User, rf: RequestFactory):
+    """El aterrizaje post-login depende del nivel del usuario."""
+
+    @pytest.mark.parametrize(
+        ("nivel", "destino"),
+        [(1, "/reservas/"), (2, "/reservas/"), (3, "/analitica/calendario/"), (4, "/portal/")],
+    )
+    def test_get_redirect_url_por_nivel(self, user: User, rf: RequestFactory, nivel: int, destino: str):
+        user.nivel = nivel
         view = UserRedirectView()
         request = rf.get("/fake-url")
         request.user = user
 
         view.request = request
-        assert view.get_redirect_url() == f"/users/{user.username}/"
+        assert view.get_redirect_url() == destino
 
 
 class TestUserDetailView:

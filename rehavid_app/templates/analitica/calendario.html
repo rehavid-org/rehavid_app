@@ -1,0 +1,76 @@
+{% extends "layouts/app.html" %}
+
+{% block title %}Calendario · REHAVID{% endblock title %}
+{% block miga %}Operación · Calendario{% endblock miga %}
+{% block titulo %}Calendario de reservas · 12 meses{% endblock titulo %}
+{% block acciones %}
+  <form method="get" class="form-r flex">
+    {% if dia_sel %}<input type="hidden" name="dia" value="{{ dia_sel|date:'Y-m-d' }}" />{% endif %}
+    <select name="servicio" onchange="this.form.submit()">
+      <option value="">Todos los servicios</option>
+      {% for s in servicios %}
+        <option value="{{ s.pk }}" {% if filtros.servicio == s.pk|stringformat:"s" %}selected{% endif %}>{{ s.nombre }}</option>
+      {% endfor %}
+    </select>
+  </form>
+{% endblock acciones %}
+
+{% block content %}
+  {% if dia_sel %}
+    <div class="panel-destacado mb-2">
+      <div class="flex-between">
+        <p class="card-titulo mt-0" style="margin-bottom:6px">
+          {{ dia_sel|date:"l d M Y" }} · {{ reservas_dia|length }} reserva{{ reservas_dia|length|pluralize }}
+        </p>
+        <a class="btn-r mini" href="?{% if filtros.servicio %}servicio={{ filtros.servicio }}{% endif %}">Cerrar detalle</a>
+      </div>
+      {% if reservas_dia %}
+        <table class="tabla-r" style="background:transparent">
+          <thead>
+            <tr><th>Código</th><th>Servicio</th><th>Cliente</th><th>Ciudad</th><th>Salida</th><th>Retorno</th></tr>
+          </thead>
+          <tbody>
+            {% for r in reservas_dia %}
+              <tr>
+                <td><span class="code">{{ r.codigo }}</span></td>
+                <td>{{ r.servicio.nombre }}</td>
+                <td>{{ r.cliente.nombre }}</td>
+                <td>{{ r.ciudad.nombre }}</td>
+                <td>{{ r.fecha_salida|date:"d M" }}</td>
+                <td>{{ r.fecha_retorno_esp|date:"d M" }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <p class="small muted">Día sin reservas activas.</p>
+      {% endif %}
+    </div>
+  {% endif %}
+
+  <div class="cal-anio">
+    {% for mes in meses %}
+      <div class="cal-mes">
+        <h3>{{ mes.nombre|date:"F Y" }}</h3>
+        <div class="cal-grid">
+          {% for d in dias_semana %}<span class="dow">{{ d }}</span>{% endfor %}
+          {% for semana in mes.semanas %}
+            {% for dia in semana %}
+              {% if dia %}
+                <a class="cal-dia {{ dia.clase }} {% if dia.fecha == hoy %}hoy{% endif %} {% if dia.fecha == dia_sel %}sel{% endif %}"
+                   href="?dia={{ dia.fecha|date:'Y-m-d' }}{% if filtros.servicio %}&servicio={{ filtros.servicio }}{% endif %}"
+                   title="{{ dia.n }} reserva{{ dia.n|pluralize }}">{{ dia.fecha.day }}</a>
+              {% else %}
+                <span class="cal-dia vacio"></span>
+              {% endif %}
+            {% endfor %}
+          {% endfor %}
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+
+  <p class="small muted mt-2">
+    Intensidad = reservas activas que ocupan el día (incluye el rango completo salida → retorno esperado).
+  </p>
+{% endblock content %}

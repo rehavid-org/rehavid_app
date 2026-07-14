@@ -1,31 +1,51 @@
 {% extends "base.html" %}
 {% load i18n %}
-{% block bodyclass %}bg-light{% endblock bodyclass %}
+{% block bodyclass %}rehavid{% endblock bodyclass %}
 
-{% block css %}{{ block.super }}{% endblock css %}
+{% block css %}
+  {{ block.super }}
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet" />
+{% endblock css %}
 {% block title %}
   {% block head_title %}
     {% trans "Sign In" %}
   {% endblock head_title %}
+  · REHAVID Operaciones
 {% endblock title %}
 {% block body %}
-  <div class="d-flex justify-content-center h-100 py-4">
-    <div class="col-md-4 py-4 my-4 px-4">
-      {% if messages %}
-        {% for message in messages %}
-          <div class="alert alert-dismissible {% if message.tags %}alert-{{ message.tags }}{% endif %}">
-            {{ message }}
-            <button type="button"
-                    class="btn-close"
-                    data-bs-dismiss="alert"
-                    aria-label="Close"></button>
-          </div>
-        {% endfor %}
-      {% endif %}
-      {% block content %}
-      {% endblock content %}
-      {% block extra_body %}
-      {% endblock extra_body %}
+  <div class="login-shell">
+    <div class="login-brand">
+      <div>
+        <div class="glyph">R</div>
+        <h1>REHAVID Operaciones</h1>
+        <p>
+          Reservas de equipos de medición biomecánica, inventario, paquetes
+          y portal de solicitudes — <span class="verde">todo en un solo lugar</span>.
+        </p>
+      </div>
+      <p class="small">Rehavid S.A.S. · Ergonomía y riesgo músculo-esquelético</p>
+    </div>
+    <div class="login-panel">
+      <div class="inner form-r">
+        {% if messages %}
+          {% for message in messages %}
+            <div class="alert alert-dismissible {% if message.tags %}alert-{{ message.tags }}{% endif %}">
+              {{ message }}
+              <button type="button"
+                      class="btn-close"
+                      data-bs-dismiss="alert"
+                      aria-label="Close"></button>
+            </div>
+          {% endfor %}
+        {% endif %}
+        {% block content %}
+        {% endblock content %}
+        {% block extra_body %}
+        {% endblock extra_body %}
+      </div>
     </div>
   </div>
 {% endblock body %}

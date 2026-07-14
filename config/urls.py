@@ -4,13 +4,14 @@ from django.contrib import admin
 from django.urls import include
 from django.urls import path
 from django.views import defaults as default_views
+from django.views.generic import RedirectView
 from django.views.generic import TemplateView
 from drf_spectacular.views import SpectacularAPIView
 from drf_spectacular.views import SpectacularSwaggerView
 from rest_framework.authtoken.views import obtain_auth_token
 
 urlpatterns = [
-    path("", TemplateView.as_view(template_name="pages/home.html"), name="home"),
+    path("", RedirectView.as_view(pattern_name="users:redirect"), name="home"),
     path(
         "about/",
         TemplateView.as_view(template_name="pages/about.html"),
@@ -21,8 +22,17 @@ urlpatterns = [
     # User management
     path("users/", include("rehavid_app.users.urls", namespace="users")),
     path("accounts/", include("allauth.urls")),
-    # Your stuff: custom urls includes go here
-    # ...
+    # Módulos REHAVID
+    path("reservas/", include("rehavid_app.reservas.urls", namespace="reservas")),
+    path("equipos/", include("rehavid_app.equipos.urls", namespace="equipos")),
+    path("paquetes/", include("rehavid_app.paquetes.urls", namespace="paquetes")),
+    path("analitica/", include("rehavid_app.analitica.urls", namespace="analitica")),
+    path("predictivo/", include("rehavid_app.predictivo.urls", namespace="predictivo")),
+    path("planes/", include("rehavid_app.planes.urls", namespace="planes")),
+    path("alertas/", include("rehavid_app.alertas.urls", namespace="alertas")),
+    path("auditoria/", include("rehavid_app.auditoria.urls", namespace="auditoria")),
+    path("administracion/", include("rehavid_app.users.urls_admin", namespace="administracion")),
+    path("portal/", include("rehavid_app.solicitudes.urls_portal", namespace="portal")),
     # Media files
     *static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT),
 ]

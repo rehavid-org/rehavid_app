@@ -1,7 +1,8 @@
+from typing import TYPE_CHECKING
+
 import pytest
 from django.core.exceptions import PermissionDenied
 from django.http import HttpResponse
-from django.test import RequestFactory
 from django.views.generic import View
 
 from rehavid_app.users.models import MENU_BY_LEVEL
@@ -10,6 +11,9 @@ from rehavid_app.users.permissions import NivelRequeridoMixin
 from rehavid_app.users.permissions import nivel_requerido
 from rehavid_app.users.permissions import require_nivel
 from rehavid_app.users.tests.factories import UserFactory
+
+if TYPE_CHECKING:
+    from django.test import RequestFactory
 
 pytestmark = pytest.mark.django_db
 

@@ -10,7 +10,7 @@ from .base import env
 # https://docs.djangoproject.com/en/dev/ref/settings/#secret-key
 SECRET_KEY = env("DJANGO_SECRET_KEY")
 # https://docs.djangoproject.com/en/dev/ref/settings/#allowed-hosts
-ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS", default=["rehavid.com.co"])
+ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS", default=["operaciones.rehavid.com.co"])
 
 # DATABASES
 # ------------------------------------------------------------------------------
@@ -63,29 +63,41 @@ SECURE_CONTENT_TYPE_NOSNIFF = env.bool(
 )
 
 
-AZURE_ACCOUNT_KEY = env("DJANGO_AZURE_ACCOUNT_KEY")
-AZURE_ACCOUNT_NAME = env("DJANGO_AZURE_ACCOUNT_NAME")
-AZURE_CONTAINER = env("DJANGO_AZURE_CONTAINER_NAME")
+AZURE_ACCOUNT_KEY = env("DJANGO_AZURE_ACCOUNT_KEY", default="")
+AZURE_ACCOUNT_NAME = env("DJANGO_AZURE_ACCOUNT_NAME", default="")
+AZURE_CONTAINER = env("DJANGO_AZURE_CONTAINER_NAME", default="rehavid")
 # STATIC & MEDIA
 # ------------------------
-STORAGES = {
-    "default": {
-        "BACKEND": "storages.backends.azure_storage.AzureStorage",
-        "OPTIONS": {
-            "location": "media",
-            "overwrite_files": False,
+# Con cuenta de Blob configurada, estáticos/media van a Azure; sin ella
+# (staging local de la imagen) se sirven del filesystem con whitenoise.
+if AZURE_ACCOUNT_NAME:
+    STORAGES = {
+        "default": {
+            "BACKEND": "storages.backends.azure_storage.AzureStorage",
+            "OPTIONS": {
+                "location": "media",
+                "overwrite_files": False,
+            },
         },
-    },
-    "staticfiles": {
-        "BACKEND": "storages.backends.azure_storage.AzureStorage",
-        "OPTIONS": {
-            "location": "static",
+        "staticfiles": {
+            "BACKEND": "storages.backends.azure_storage.AzureStorage",
+            "OPTIONS": {
+                "location": "static",
+            },
         },
-    },
-}
-MEDIA_URL = f"https://{AZURE_ACCOUNT_NAME}.blob.core.windows.net/media/"
-COLLECTFASTA_STRATEGY = "collectfasta.strategies.azure.AzureBlobStrategy"
-STATIC_URL = f"https://{AZURE_ACCOUNT_NAME}.blob.core.windows.net/static/"
+    }
+    MEDIA_URL = f"https://{AZURE_ACCOUNT_NAME}.blob.core.windows.net/media/"
+    COLLECTFASTA_STRATEGY = "collectfasta.strategies.azure.AzureBlobStrategy"
+    STATIC_URL = f"https://{AZURE_ACCOUNT_NAME}.blob.core.windows.net/static/"
+else:
+    STORAGES = {
+        "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+        "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
+    }
+    MIDDLEWARE.insert(  # noqa: F405 · después de SecurityMiddleware
+        MIDDLEWARE.index("django.middleware.security.SecurityMiddleware") + 1,  # noqa: F405
+        "whitenoise.middleware.WhiteNoiseMiddleware",
+    )
 
 # EMAIL
 # ------------------------------------------------------------------------------
@@ -175,7 +187,22 @@ LOGGING = {
 # -------------------------------------------------------------------------------
 # Tools that generate code samples can use SERVERS to point to the correct domain
 SPECTACULAR_SETTINGS["SERVERS"] = [
-    {"url": "https://rehavid.com.co", "description": "Production server"},
+    {"url": "https://operaciones.rehavid.com.co", "description": "Production server"},
 ]
-# Your stuff...
+
+# Application Insights (opcional · telemetría en Azure)
 # ------------------------------------------------------------------------------
+# Activo solo si la connection string llega por env (App Service la inyecta) y
+# el paquete azure-monitor-opentelemetry está instalado en la imagen.
+APPLICATIONINSIGHTS_CONNECTION_STRING = env("APPLICATIONINSIGHTS_CONNECTION_STRING", default="")
+if APPLICATIONINSIGHTS_CONNECTION_STRING:
+    try:
+        from azure.monitor.opentelemetry import configure_azure_monitor
+
+        configure_azure_monitor(connection_string=APPLICATIONINSIGHTS_CONNECTION_STRING)
+    except ImportError:  # el paquete es opcional; sin él la app arranca igual
+        import logging
+
+        logging.getLogger(__name__).warning(
+            "APPLICATIONINSIGHTS_CONNECTION_STRING definido pero azure-monitor-opentelemetry no está instalado",
+        )

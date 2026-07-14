@@ -56,25 +56,98 @@ Bitácora de avance contra `PLAN_MIGRACION.md`. **Retomar por "PRÓXIMO PASO" ab
 - **Excel openpyxl** (B14): helper `rehavid_app/xlsx.py` (estilo marca); export de reservas (respeta filtros, schema del modelo real), equipos, auditoría; **plantilla + import de equipos** validado todo-o-nada contra el modelo canónico (B7).
 - Smoke con seed (ariel n1): 16 rutas en 200, KPIs cuadran (57 reservas), finding→plan crea PL-010, email de alerta enviado y registrado, stub whatsapp registrado. 154 tests + ruff limpio.
 
-## ⏳ Fase 7 · Docker producción + Azure — NO INICIADA
-Dockerfile multi-stage producción, compose producción, settings Azure (Blob/App Insights), CI/CD. Guía origen: `../rehavid/docs/instrucciones_azure_ingeniero.md`.
+## 🔶 Fase 7 · Docker producción + Azure — CÓDIGO ESCRITO, VERIFICACIÓN PENDIENTE
+
+### Hecho (commiteado, sin verificar en runtime)
+- `compose/production/django/Dockerfile` multi-stage: builder uv (`--no-dev`) → runtime `python:3.14-slim-trixie`, usuario `django` no-root, HEALTHCHECK a `/health/`, gunicorn :5000. **Imagen construida OK: 263MB** (antes 641MB — el fix fue crear `.dockerignore`, faltaba y el `COPY . /app` metía `.venv` y `.git`).
+- Scripts `compose/production/django/{entrypoint,start,celery/worker/start,celery/beat/start}`: entrypoint espera BD con psycopg (sin wait-for-it), start corre `migrate` + `collectstatic` + gunicorn.
+- `docker-compose.production.yml` (staging local: django+postgres+redis+celeryworker+celerybeat) + plantillas `.envs/.production_example/` (los reales van en `.envs/.production/`, git-ignored).
+- `config/views.py::health` → `/health/` con chequeo de BD (lo usan Docker y el probe de App Service).
+- `config/settings/production.py`: ALLOWED_HOSTS default `operaciones.rehavid.com.co`; STORAGES condicional (con `DJANGO_AZURE_ACCOUNT_NAME` → Blob; sin ella → **whitenoise**, dependencia agregada, para staging local); Application Insights opcional por `APPLICATIONINSIGHTS_CONNECTION_STRING` (guard de import).
+- `.github/workflows/deploy.yml`: tags `v*` → tests (postgres 16 en CI) → build+push a ACR → deploy App Service (django + worker/beat opcionales) → espera 200 de `/health/`.
+- `docs/DESPLIEGUE_AZURE.md`: guía completa az CLI adaptada de la del prototipo (RG, ACR, PG Flexible, Redis, Blob, Key Vault, App Services, SSO Entra, dominio, App Insights, Azure ML).
+- Fix también en `compose/local/django/Dockerfile`: `gcc` → `build-essential` (psycopg-c no compilaba: faltaba `assert.h`/libc6-dev).
+
+### ⏳ PENDIENTE de la Fase 7 (retomar aquí)
+1. **Liberar espacio en disco del Mac** (~1GB libre; el daemon de Docker se cayó con errores de I/O a mitad del staging). Reiniciar Docker Desktop y `docker builder prune -af` (son capas de build; no toca datos).
+2. `docker compose -f docker-compose.production.yml up --build` → verificar `curl localhost:5000/health/` = `{"status": "ok"}`, login y estáticos (whitenoise). Los `.envs/.production/` locales de staging **ya están creados** con valores de prueba.
+3. Verificar celeryworker/celerybeat arriba en ese compose.
+4. Build de la imagen **local** (`docker compose -f docker-compose.local.yml build django`) y `up` completo full-docker (pendiente desde Fase 0; el fix de build-essential aún no se probó).
+5. Al terminar: re-correr `pytest` (los 144 errores de la última corrida fueron por la caída de Docker/postgres por disco lleno, NO por código — la suite completa pasaba minutos antes con 154 tests).
+6. (Cuando exista la infra real) cargar secrets en GitHub y probar el workflow deploy.yml contra Azure.
 
 ## ⏳ Fase 8 · Verificación integral — NO INICIADA
 Checklist funcional completo en sección 5 de `PLAN_MIGRACION.md`. También pendiente: build de la imagen Docker local (`docker compose -f docker-compose.local.yml build django`) y `docker compose up` completo.
 
 ---
 
-## Cómo retomar (nueva sesión)
+## Cómo levantar TODO localmente (nueva sesión)
+
+> **Sobre el `.venv`**: es SOLO conveniencia de desarrollo en el host (IDE, pytest rápido,
+> ruff). Las imágenes Docker instalan sus dependencias adentro con `uv sync --locked` y el
+> `.dockerignore` garantiza que `.venv`/`.git` nunca entren a una imagen. Producción es
+> 100% Docker.
+
+### Modo A · Híbrido (el usado en las fases 0-6: rápido para desarrollar)
 
 ```bash
 cd /Users/yesid/Desktop/Desarrollo/Personal/rehavid_app
+
+# 1 · Si Docker Desktop no corre:  open -a Docker  (esperar al daemon)
 docker compose -f docker-compose.local.yml up -d postgres redis mailpit
+
+# 2 · Variables para correr manage.py/pytest desde el host:
 source .envs/.local/.postgres
 export DATABASE_URL="postgres://$POSTGRES_USER:$POSTGRES_PASSWORD@localhost:5432/$POSTGRES_DB"
-uv run pytest        # debe dar 83 tests en verde (verificado 2026-07-13)
+
+# 3 · (solo primera vez o tras cambiar pyproject) dependencias del host:
+uv sync --group dev
+
+uv run python manage.py migrate
+uv run python manage.py seed_demo        # idempotente · datos reales del prototipo
+uv run pytest -q                         # 154 tests en verde (última corrida sana 2026-07-13)
+uv run ruff check .                      # limpio
+uv run python manage.py runserver        # → http://localhost:8000
 ```
-Luego arrancar Fase 4 (arriba). Notas:
-- El repo NO es git aún (`git init` recomendado antes de seguir).
-- Ruff no se ha corrido sobre el código nuevo; puede haber ajustes menores de lint.
-- `mypy` tampoco se ha corrido.
-- Usuarios seed: `ariel.ramirez@rehavid.com.co`/`13011976` (nivel 1), `jhon.orrego@rehavid.com.co`/`demo123` (nivel 2), `liliana.hernandez@rehavid.com.co`/`demo123` (nivel 3), `monica.vargas@arlsura.com`/`demo123` (nivel 4).
+Mailpit UI (emails locales): http://localhost:8025 · Postgres expuesto en :5432.
+
+### Modo B · Full Docker (todo en contenedores)
+
+```bash
+docker compose -f docker-compose.local.yml up -d --build   # django+celery incluidos; migra solo
+docker compose -f docker-compose.local.yml run --rm django python manage.py seed_demo
+docker compose -f docker-compose.local.yml run --rm django pytest
+# → http://localhost:8000
+```
+⚠ El build de la imagen local aún NO se ha verificado (ver pendientes Fase 7, punto 4).
+
+### Staging de producción local (cuando se retome Fase 7)
+
+```bash
+# .envs/.production/.{django,postgres} ya existen con valores de staging (git-ignored)
+docker compose -f docker-compose.production.yml up -d --build
+curl http://localhost:5000/health/       # → {"status": "ok"}
+```
+
+### Usuarios del seed (login por EMAIL)
+
+| Email | Password | Nivel |
+|---|---|---|
+| `ariel.ramirez@rehavid.com.co` | `13011976` | 1 · Admin Global |
+| `jhon.orrego@rehavid.com.co` | `demo123` | 2 · Operador |
+| `liliana.hernandez@rehavid.com.co` | `demo123` | 3 · Coordinadora |
+| `monica.vargas@arlsura.com` | `demo123` | 4 · Solicitante |
+
+Aterrizaje post-login por nivel: 1-2 → `/reservas/` · 3 → `/analitica/calendario/` · 4 → `/portal/`.
+
+### Estado del entorno / advertencias vigentes (2026-07-13)
+
+- **El disco del Mac está casi lleno (~1GB libre)** — Docker se cayó por esto a mitad del
+  staging de producción. Antes de builds pesados: liberar espacio y/o `docker builder prune -af`.
+- Los 144 errores de la última corrida de pytest fueron por esa caída de Docker/postgres,
+  no por código (la suite completa estaba en verde minutos antes).
+- `mypy` no se ha corrido nunca sobre el proyecto.
+- Documentación de contexto completo: `CLAUDE.md` (mapa operativo), `docs/ARQUITECTURA.md`
+  (mapa exhaustivo de la app), `docs/DESPLIEGUE_AZURE.md` (infra).
+- **Próximo trabajo**: pendientes de Fase 7 (arriba) → luego Fase 8 (QA integral + tests
+  e2e pospuestos por decisión del usuario durante las fases 6-7).

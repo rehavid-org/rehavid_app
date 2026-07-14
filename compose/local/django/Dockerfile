@@ -14,7 +14,7 @@ WORKDIR ${APP_HOME}
 RUN apt-get update && apt-get install --no-install-recommends -y \
   # psycopg c-extension build/runtime deps
   libpq-dev \
-  gcc \
+  build-essential \
   # Translations dependencies
   gettext \
   # entrypoint waits for postgres

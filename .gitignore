@@ -274,3 +274,4 @@ rehavid_app/media/
 .env
 .envs/*
 !.envs/.local/
+!.envs/.production_example/

@@ -1,0 +1,44 @@
+#!/bin/bash
+
+set -o errexit
+set -o pipefail
+set -o nounset
+
+export CELERY_BROKER_URL="${CELERY_BROKER_URL:-${REDIS_URL}}"
+
+# En Azure DATABASE_URL llega directo (Key Vault); en compose se arma de POSTGRES_*
+if [ -z "${DATABASE_URL:-}" ]; then
+    export DATABASE_URL="postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}"
+fi
+
+# Espera a la BD sin depender de binarios externos
+python <<'PY'
+import os
+import sys
+import time
+from urllib.parse import urlparse
+
+import psycopg
+
+url = urlparse(os.environ["DATABASE_URL"])
+for intento in range(30):
+    try:
+        psycopg.connect(
+            dbname=url.path.lstrip("/"),
+            user=url.username,
+            password=url.password,
+            host=url.hostname,
+            port=url.port or 5432,
+            connect_timeout=3,
+        ).close()
+        break
+    except psycopg.OperationalError:
+        time.sleep(2)
+else:
+    sys.stderr.write("PostgreSQL no disponible tras 60s\n")
+    sys.exit(1)
+PY
+
+>&2 echo 'PostgreSQL is available'
+
+exec "$@"

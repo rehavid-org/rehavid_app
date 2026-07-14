@@ -1,0 +1,25 @@
+# Nada de esto debe entrar en las imágenes (COPY . /app)
+.venv
+.git
+.github
+.gitignore
+.dockerignore
+.envs
+!.envs/.local
+.pytest_cache
+.mypy_cache
+.ruff_cache
+__pycache__
+*.pyc
+staticfiles
+docs
+compose/production/django/Dockerfile
+docker-compose.local.yml
+docker-compose.production.yml
+.claude
+.agents
+.editorconfig
+.pre-commit-config.yaml
+README.md
+ESTADO_MIGRACION.md
+PLAN_MIGRACION.md

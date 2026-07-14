@@ -1,0 +1,16 @@
+#!/bin/bash
+
+set -o errexit
+set -o pipefail
+set -o nounset
+
+python manage.py migrate --noinput
+python manage.py collectstatic --noinput
+
+exec gunicorn config.wsgi \
+    --bind 0.0.0.0:5000 \
+    --workers "${GUNICORN_WORKERS:-4}" \
+    --timeout 60 \
+    --access-logfile - \
+    --error-logfile - \
+    --chdir=/app

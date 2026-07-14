@@ -1,0 +1,117 @@
+# Despliegue a Azure: build de la imagen de producción → push a ACR →
+# deploy a App Service for Containers. Las migraciones corren en el
+# arranque del contenedor (/start ejecuta migrate + collectstatic).
+#
+# Secrets requeridos en GitHub:
+#   AZURE_CREDENTIALS       · service principal JSON (az ad sp create-for-rbac --sdk-auth)
+#   ACR_LOGIN_SERVER        · p.ej. rehavidacr.azurecr.io
+#   ACR_USERNAME / ACR_PASSWORD
+#   AZURE_WEBAPP_NAME       · nombre del App Service de django
+#   AZURE_WEBAPP_NAME_WORKER (opcional) · App Service del celery worker
+#   AZURE_WEBAPP_NAME_BEAT   (opcional) · App Service del celery beat
+
+name: Deploy
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  IMAGE_NAME: rehavid-operaciones
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: rehavid
+          POSTGRES_PASSWORD: rehavid
+          POSTGRES_DB: rehavid_app
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready --health-interval 5s
+          --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgres://rehavid:rehavid@localhost:5432/rehavid_app
+    steps:
+      - uses: actions/checkout@v6
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: 'true'
+      - uses: actions/setup-python@v6
+        with:
+          python-version-file: '.python-version'
+      - run: uv sync --locked
+      - run: uv run python manage.py makemigrations --check
+      - run: uv run pytest
+
+  build-and-deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Login ACR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ secrets.ACR_LOGIN_SERVER }}
+          username: ${{ secrets.ACR_USERNAME }}
+          password: ${{ secrets.ACR_PASSWORD }}
+
+      - name: Build & push imagen de producción
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./compose/production/django/Dockerfile
+          push: true
+          tags: |
+            ${{ secrets.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+            ${{ secrets.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:latest
+
+      - name: Login Azure
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Deploy django (App Service)
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ secrets.AZURE_WEBAPP_NAME }}
+          images: ${{ secrets.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+
+      - name: Deploy celery worker (opcional)
+        if: ${{ secrets.AZURE_WEBAPP_NAME_WORKER != '' }}
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ secrets.AZURE_WEBAPP_NAME_WORKER }}
+          images: ${{ secrets.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          startup-command: /start-celeryworker
+
+      - name: Deploy celery beat (opcional)
+        if: ${{ secrets.AZURE_WEBAPP_NAME_BEAT != '' }}
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ secrets.AZURE_WEBAPP_NAME_BEAT }}
+          images: ${{ secrets.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          startup-command: /start-celerybeat
+
+      - name: Verificar health check
+        run: |
+          for i in $(seq 1 20); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' "https://${{ secrets.AZURE_WEBAPP_NAME }}.azurewebsites.net/health/" || true)
+            if [ "$code" = "200" ]; then
+              echo "Health check OK"
+              exit 0
+            fi
+            echo "Intento $i: /health/ devolvió $code · reintentando en 15s"
+            sleep 15
+          done
+          echo "El health check nunca respondió 200"
+          exit 1

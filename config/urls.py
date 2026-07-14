@@ -10,12 +10,14 @@ from drf_spectacular.views import SpectacularAPIView
 from drf_spectacular.views import SpectacularSwaggerView
 from rest_framework.authtoken.views import obtain_auth_token
 
+from config.views import health
 from rehavid_app.analitica.api.views import DashboardDataView
 from rehavid_app.analitica.api.views import RecomendacionesView
 from rehavid_app.predictivo.api import ScoreView
 
 urlpatterns = [
     path("", RedirectView.as_view(pattern_name="users:redirect"), name="home"),
+    path("health/", health, name="health"),
     path(
         "about/",
         TemplateView.as_view(template_name="pages/about.html"),

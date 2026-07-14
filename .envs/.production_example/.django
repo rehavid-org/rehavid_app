@@ -1,0 +1,43 @@
+# Plantilla: copiar a .envs/.production/.django (NO se versiona) y completar.
+# En Azure estos valores viven en Key Vault y llegan como app settings.
+
+# General
+DJANGO_SETTINGS_MODULE=config.settings.production
+DJANGO_SECRET_KEY=CAMBIAR-POR-SECRETO-DE-KEY-VAULT
+DJANGO_ADMIN_URL=admin-rehavid/
+DJANGO_ALLOWED_HOSTS=operaciones.rehavid.com.co
+
+# Seguridad
+DJANGO_SECURE_SSL_REDIRECT=False
+
+# Redis / Celery
+REDIS_URL=redis://redis:6379/0
+
+# Azure Blob (estáticos y media)
+DJANGO_AZURE_ACCOUNT_KEY=
+DJANGO_AZURE_ACCOUNT_NAME=
+DJANGO_AZURE_CONTAINER_NAME=rehavid
+
+# Email (anymail · Mailgun)
+MAILGUN_API_KEY=
+MAILGUN_DOMAIN=
+
+# SSO Microsoft Entra ID
+AZURE_SSO_CLIENT_ID=
+AZURE_SSO_CLIENT_SECRET=
+AZURE_SSO_TENANT_ID=
+
+# Predictivo (Azure ML) · dejar en False hasta desplegar el modelo
+AZURE_ML_ENABLED=False
+AZURE_ML_ENDPOINT=
+AZURE_ML_KEY=
+AZURE_ML_DEPLOYMENT=rehavid-msk-v1
+
+# Application Insights (opcional)
+APPLICATIONINSIGHTS_CONNECTION_STRING=
+
+# Alertas
+ALERTAS_EMAIL_FROM=operaciones@rehavid.com.co
+
+# Gunicorn
+GUNICORN_WORKERS=4

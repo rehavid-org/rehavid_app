@@ -1,0 +1,6 @@
+# Plantilla: copiar a .envs/.production/.postgres (NO se versiona) y completar.
+POSTGRES_HOST=postgres
+POSTGRES_PORT=5432
+POSTGRES_DB=rehavid_app
+POSTGRES_USER=CAMBIAR
+POSTGRES_PASSWORD=CAMBIAR

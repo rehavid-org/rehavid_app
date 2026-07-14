@@ -1,0 +1,51 @@
+# Staging local de la imagen de producción:
+#   docker compose -f docker-compose.production.yml up --build
+# En Azure cada servicio corre como contenedor propio (App Service /
+# Container Apps) con Postgres Flexible Server y Azure Cache for Redis
+# gestionados — este compose replica esa topología en una máquina.
+
+volumes:
+  production_postgres_data: {}
+  production_postgres_data_backups: {}
+  production_redis_data: {}
+
+services:
+  django: &django
+    build:
+      context: .
+      dockerfile: ./compose/production/django/Dockerfile
+    image: rehavid_app_production_django
+    depends_on:
+      - postgres
+      - redis
+    env_file:
+      - ./.envs/.production/.django
+      - ./.envs/.production/.postgres
+    ports:
+      - '5000:5000'
+    command: /start
+
+  postgres:
+    image: postgres:16
+    volumes:
+      - production_postgres_data:/var/lib/postgresql/data
+      - production_postgres_data_backups:/backups
+    env_file:
+      - ./.envs/.production/.postgres
+
+  redis:
+    image: docker.io/redis:8
+    volumes:
+      - production_redis_data:/data
+
+  celeryworker:
+    <<: *django
+    image: rehavid_app_production_celeryworker
+    ports: []
+    command: /start-celeryworker
+
+  celerybeat:
+    <<: *django
+    image: rehavid_app_production_celerybeat
+    ports: []
+    command: /start-celerybeat

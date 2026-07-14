@@ -1,16 +1,22 @@
-"""Vistas de analítica. Fase 4: calendario 12 meses server-rendered.
-Brief/dashboard/recomendaciones llegan en Fase 6."""
+"""Vistas de analítica: calendario, brief ejecutivo, dashboard y
+motor de recomendaciones (todo calculado de la BD — B15)."""
 
 import calendar
 from datetime import date
 from datetime import timedelta
 
+from django.contrib import messages
+from django.shortcuts import redirect
 from django.utils import timezone
 from django.views.generic import TemplateView
 
+from rehavid_app.catalogo.models import Ciudad
 from rehavid_app.catalogo.models import Servicio
 from rehavid_app.reservas.models import Reserva
 from rehavid_app.users.permissions import ModuloRequeridoMixin
+from rehavid_app.users.permissions import nivel_requerido
+
+from . import services
 
 DIAS_SEMANA = ["L", "M", "X", "J", "V", "S", "D"]
 MESES_ANIO = 12
@@ -24,6 +30,99 @@ def _meses_desde(inicio: date, cantidad: int = MESES_ANIO):
         mes += 1
         if mes > MESES_ANIO:
             mes, anio = 1, anio + 1
+
+
+def _filtros_analitica(request) -> dict:
+    p = request.GET
+    return {
+        "desde": p.get("desde") or None,
+        "hasta": p.get("hasta") or None,
+        "servicio": p.get("servicio") or None,
+        "ciudad": p.get("ciudad") or None,
+    }
+
+
+class BriefView(ModuloRequeridoMixin, TemplateView):
+    """Brief ejecutivo: KPIs de BD + top findings + próximas salidas."""
+
+    modulo = "brief"
+    template_name = "analitica/brief.html"
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        hoy = timezone.localdate()
+        findings = services.analizar()
+        ctx.update(
+            modulo_activo="brief",
+            kpis=services.kpis(),
+            findings=findings[:5],
+            findings_total=len(findings),
+            proximas_salidas=(
+                Reserva.objects.filter(cancelada=False, fecha_salida__gte=hoy)
+                .select_related("servicio", "cliente", "ciudad")
+                .order_by("fecha_salida")[:8]
+            ),
+            retornos_proximos=(
+                Reserva.objects.filter(
+                    cancelada=False, confirmacion_retorno__isnull=True,
+                    fecha_retorno_esp__gte=hoy, fecha_retorno_esp__lte=hoy + timedelta(days=7),
+                )
+                .select_related("servicio", "cliente")
+                .order_by("fecha_retorno_esp")[:8]
+            ),
+        )
+        return ctx
+
+
+class DashboardView(ModuloRequeridoMixin, TemplateView):
+    """Dashboard con filtros; los charts ECharts se alimentan del endpoint JSON."""
+
+    modulo = "dashboard"
+    template_name = "analitica/dashboard.html"
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        filtros = _filtros_analitica(self.request)
+        ctx.update(
+            modulo_activo="dashboard",
+            kpis=services.kpis(**filtros),
+            servicios=Servicio.objects.filter(activo=True),
+            ciudades=Ciudad.objects.all(),
+            filtros=self.request.GET,
+        )
+        return ctx
+
+
+class RecosView(ModuloRequeridoMixin, TemplateView):
+    """Motor de recomendaciones: los 11 detectores + convertir finding→plan."""
+
+    modulo = "recos"
+    template_name = "analitica/recos.html"
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        findings = services.analizar()
+        areas = sorted({f.area for f in findings})
+        if area := self.request.GET.get("area"):
+            findings = [f for f in findings if f.area == area]
+        ctx.update(
+            modulo_activo="recos",
+            findings=findings,
+            areas=areas,
+            filtros=self.request.GET,
+        )
+        return ctx
+
+
+@nivel_requerido(2)
+def crear_plan_desde_finding_view(request, finding_id):
+    try:
+        plan = services.crear_plan_desde_finding(finding_id, request.user)
+        messages.success(request, f"Plan {plan.codigo} creado desde la recomendación")
+        return redirect("planes:lista")
+    except ValueError as e:
+        messages.error(request, str(e))
+        return redirect("analitica:recos")
 
 
 class CalendarioView(ModuloRequeridoMixin, TemplateView):

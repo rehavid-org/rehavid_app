@@ -1,0 +1,84 @@
+{% extends "layouts/app.html" %}
+
+{% block title %}Brief ejecutivo · REHAVID{% endblock title %}
+{% block miga %}Dirección · Brief{% endblock miga %}
+{% block titulo %}Brief ejecutivo{% endblock titulo %}
+{% block acciones %}
+  <a class="btn-r" href="{% url 'analitica:dashboard' %}">Dashboard completo</a>
+{% endblock acciones %}
+
+{% block content %}
+  <div class="kpi-grid">
+    <div class="kpi accent">
+      <div class="tag">Reservas activas</div>
+      <div class="value">{{ kpis.reservas_activas }} <span class="unidad">/ {{ kpis.reservas_total }}</span></div>
+      <div class="sub">{{ kpis.tasa_cancelacion }}% de cancelación histórica</div>
+    </div>
+    <div class="kpi good">
+      <div class="tag">Personas en evaluación</div>
+      <div class="value">{{ kpis.personas_evaluadas }}</div>
+      <div class="sub">{{ kpis.clientes_activos }} clientes · {{ kpis.ciudades_cubiertas }} ciudades</div>
+    </div>
+    <div class="kpi">
+      <div class="tag">Flota</div>
+      <div class="value">{{ kpis.equipos_disponibles }} <span class="unidad">/ {{ kpis.equipos_total }}</span></div>
+      <div class="sub">equipos disponibles ahora</div>
+    </div>
+    <div class="kpi {% if kpis.solicitudes_pendientes %}warn{% endif %}">
+      <div class="tag">Pendientes de atender</div>
+      <div class="value">{{ kpis.solicitudes_pendientes }}</div>
+      <div class="sub">{{ kpis.planes_en_riesgo }} plan(es) en riesgo</div>
+    </div>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-lg-7">
+      <div class="card-r">
+        <div class="flex-between">
+          <p class="card-titulo">Hallazgos del motor de análisis · top {{ findings|length }} de {{ findings_total }}</p>
+          <a class="btn-r mini" href="{% url 'analitica:recos' %}">Ver todos</a>
+        </div>
+        {% for f in findings %}
+          <div style="padding:10px 0;border-bottom:1px solid var(--line-3)">
+            <div class="flex" style="gap:8px">
+              <span class="chip {% if f.severidad >= 4 %}cancelada{% elif f.severidad == 3 %}pendiente{% else %}info{% endif %}">
+                S{{ f.severidad }}
+              </span>
+              <strong>{{ f.titulo }}</strong>
+            </div>
+            <div class="small muted mt-1">{{ f.observacion }}</div>
+          </div>
+        {% empty %}
+          <div class="vacio-estado">
+            <div class="titulo">Sin hallazgos</div>
+            La operación está dentro de los umbrales configurados.
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+    <div class="col-lg-5">
+      <div class="card-r">
+        <p class="card-titulo">Próximas salidas</p>
+        {% for r in proximas_salidas %}
+          <div class="flex-between" style="padding:6px 0;border-bottom:1px solid var(--line-3)">
+            <span><span class="code">{{ r.codigo }}</span> {{ r.cliente.nombre|truncatechars:24 }} · {{ r.ciudad.nombre }}</span>
+            <strong>{{ r.fecha_salida|date:"d M" }}</strong>
+          </div>
+        {% empty %}
+          <p class="muted small">Sin salidas programadas.</p>
+        {% endfor %}
+      </div>
+      <div class="card-r">
+        <p class="card-titulo">Retornos esta semana</p>
+        {% for r in retornos_proximos %}
+          <div class="flex-between" style="padding:6px 0;border-bottom:1px solid var(--line-3)">
+            <span><span class="code">{{ r.codigo }}</span> {{ r.cliente.nombre|truncatechars:24 }}</span>
+            <strong>{{ r.fecha_retorno_esp|date:"d M" }}</strong>
+          </div>
+        {% empty %}
+          <p class="muted small">Sin retornos en los próximos 7 días.</p>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+{% endblock content %}

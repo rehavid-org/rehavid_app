@@ -1,0 +1,146 @@
+{% extends "layouts/app.html" %}
+
+{% block title %}Dashboard · REHAVID{% endblock title %}
+{% block miga %}Dirección · Dashboard{% endblock miga %}
+{% block titulo %}Dashboard operativo{% endblock titulo %}
+
+{% block content %}
+  <form class="filtros form-r" method="get">
+    <div class="campo">
+      <label for="f-servicio">Servicio</label>
+      <select id="f-servicio" name="servicio">
+        <option value="">Todos</option>
+        {% for s in servicios %}
+          <option value="{{ s.pk }}" {% if filtros.servicio == s.pk|stringformat:"s" %}selected{% endif %}>{{ s.nombre }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="campo">
+      <label for="f-ciudad">Ciudad</label>
+      <select id="f-ciudad" name="ciudad">
+        <option value="">Todas</option>
+        {% for c in ciudades %}
+          <option value="{{ c.pk }}" {% if filtros.ciudad == c.pk|stringformat:"s" %}selected{% endif %}>{{ c.nombre }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="campo">
+      <label for="f-desde">Salida desde</label>
+      <input id="f-desde" type="date" name="desde" value="{{ filtros.desde }}" />
+    </div>
+    <div class="campo">
+      <label for="f-hasta">Salida hasta</label>
+      <input id="f-hasta" type="date" name="hasta" value="{{ filtros.hasta }}" />
+    </div>
+    <button class="btn-r" type="submit">Aplicar</button>
+    {% if filtros.servicio or filtros.ciudad or filtros.desde or filtros.hasta %}
+      <a class="btn-r mini" href="{% url 'analitica:dashboard' %}">Limpiar</a>
+    {% endif %}
+  </form>
+
+  <div class="kpi-grid">
+    <div class="kpi accent">
+      <div class="tag">Reservas (filtro)</div>
+      <div class="value">{{ kpis.reservas_total }}</div>
+      <div class="sub">{{ kpis.reservas_activas }} activas ahora</div>
+    </div>
+    <div class="kpi good">
+      <div class="tag">Personas a evaluar</div>
+      <div class="value">{{ kpis.personas_evaluadas }}</div>
+    </div>
+    <div class="kpi">
+      <div class="tag">Clientes</div>
+      <div class="value">{{ kpis.clientes_activos }}</div>
+      <div class="sub">{{ kpis.ciudades_cubiertas }} ciudades cubiertas</div>
+    </div>
+    <div class="kpi {% if kpis.tasa_cancelacion >= 7 %}alert{% endif %}">
+      <div class="tag">Tasa de cancelación</div>
+      <div class="value">{{ kpis.tasa_cancelacion }}<span class="unidad">%</span></div>
+      <div class="sub">{{ kpis.reservas_canceladas }} canceladas</div>
+    </div>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-lg-6"><div class="card-r"><p class="card-titulo">Reservas activas por servicio</p><div id="ch-servicio" style="height:280px"></div></div></div>
+    <div class="col-lg-6"><div class="card-r"><p class="card-titulo">Reservas activas por ciudad</p><div id="ch-ciudad" style="height:280px"></div></div></div>
+    <div class="col-lg-8"><div class="card-r"><p class="card-titulo">Evolución semanal de salidas</p><div id="ch-evolucion" style="height:280px"></div></div></div>
+    <div class="col-lg-4"><div class="card-r"><p class="card-titulo">Estado de la flota</p><div id="ch-equipos" style="height:280px"></div></div></div>
+    <div class="col-lg-6"><div class="card-r"><p class="card-titulo">Top clientes por volumen</p><div id="ch-clientes" style="height:280px"></div></div></div>
+  </div>
+{% endblock content %}
+
+{% block inline_javascript %}
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+  <script>
+    window.addEventListener('DOMContentLoaded', async () => {
+      const BRAND = '#4025CE', BRAND_LIGHT = '#6952DA', INK3 = '#5A4A95', LINE = '#E5DFF6';
+      const ESTADO_COLOR = {
+        disponible: '#00A055', en_uso: '#4025CE', en_preparacion: '#B8770F',
+        en_revision: '#8B5CF6', en_mantenimiento: '#B23B5C', en_transito: '#6952DA',
+      };
+      const params = new URLSearchParams(window.location.search);
+      const res = await fetch(`/api/analitica/dashboard/?${params}`, { credentials: 'same-origin' });
+      if (!res.ok) return;
+      const { series } = await res.json();
+
+      const base = {
+        textStyle: { fontFamily: 'Outfit, Arial, sans-serif', color: INK3 },
+        tooltip: { trigger: 'item', borderColor: LINE },
+        grid: { left: 8, right: 24, top: 12, bottom: 8, containLabel: true },
+      };
+      const ejeValor = { type: 'value', splitLine: { lineStyle: { color: LINE } }, axisLabel: { color: INK3 } };
+      const ejeCat = (data) => ({ type: 'category', data, axisLine: { lineStyle: { color: LINE } }, axisLabel: { color: INK3 } });
+
+      function barrasH(id, items, campoNombre) {
+        const datos = items.slice().reverse();
+        echarts.init(document.getElementById(id)).setOption({
+          ...base,
+          xAxis: ejeValor,
+          yAxis: ejeCat(datos.map((d) => d[campoNombre])),
+          series: [{
+            type: 'bar', data: datos.map((d) => d.n), barMaxWidth: 14,
+            itemStyle: { color: BRAND, borderRadius: [0, 4, 4, 0] },
+            label: { show: true, position: 'right', color: INK3 },
+          }],
+        });
+      }
+
+      barrasH('ch-servicio', series.por_servicio, 'servicio__nombre');
+      barrasH('ch-ciudad', series.por_ciudad, 'ciudad__nombre');
+      barrasH('ch-clientes', series.por_cliente, 'cliente__nombre');
+
+      echarts.init(document.getElementById('ch-evolucion')).setOption({
+        ...base,
+        tooltip: { trigger: 'axis', borderColor: LINE },
+        xAxis: ejeCat(series.evolucion_semanal.map((d) => d.semana)),
+        yAxis: ejeValor,
+        series: [{
+          type: 'line', data: series.evolucion_semanal.map((d) => d.n),
+          lineStyle: { color: BRAND, width: 2 }, itemStyle: { color: BRAND },
+          symbolSize: 8, smooth: false,
+          areaStyle: { color: 'rgba(64,37,206,0.08)' },
+        }],
+      });
+
+      echarts.init(document.getElementById('ch-equipos')).setOption({
+        ...base,
+        legend: { bottom: 0, textStyle: { color: INK3 } },
+        series: [{
+          type: 'pie', radius: ['45%', '68%'], center: ['50%', '44%'],
+          data: series.estados_equipo.map((d) => ({
+            name: d.label, value: d.n,
+            itemStyle: { color: ESTADO_COLOR[d.estado] || BRAND_LIGHT, borderColor: '#fff', borderWidth: 2 },
+          })),
+          label: { color: INK3, formatter: '{b}: {c}' },
+        }],
+      });
+
+      window.addEventListener('resize', () => {
+        ['ch-servicio', 'ch-ciudad', 'ch-clientes', 'ch-evolucion', 'ch-equipos'].forEach((id) => {
+          const el = document.getElementById(id);
+          if (el) echarts.getInstanceByDom(el)?.resize();
+        });
+      });
+    });
+  </script>
+{% endblock inline_javascript %}

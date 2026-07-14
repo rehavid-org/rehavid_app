@@ -1,0 +1,57 @@
+{% extends "layouts/app.html" %}
+
+{% block title %}Ficha {{ usuario.email }} · REHAVID{% endblock title %}
+{% block miga %}Sistema · Administración{% endblock miga %}
+{% block titulo %}{{ usuario.name|default:usuario.email }}{% endblock titulo %}
+{% block acciones %}
+  <a class="btn-r" href="{% url 'administracion:usuario_editar' usuario.pk %}">Editar</a>
+  <a class="btn-r" href="{% url 'administracion:usuarios' %}">← Usuarios</a>
+{% endblock acciones %}
+
+{% block content %}
+  <div class="kpi-grid">
+    <div class="kpi accent">
+      <div class="tag">Nivel</div>
+      <div class="value" style="font-size:18px">{{ usuario.nivel }} · {{ usuario.get_nivel_display }}</div>
+      <div class="sub">{{ usuario.rol_descriptivo|default:"sin rol descriptivo" }}</div>
+    </div>
+    <div class="kpi">
+      <div class="tag">Empresa</div>
+      <div class="value" style="font-size:18px">{{ usuario.empresa.nombre|default:"—" }}</div>
+    </div>
+    <div class="kpi {% if not usuario.is_active %}alert{% endif %}">
+      <div class="tag">Estado</div>
+      <div class="value" style="font-size:18px">{% if usuario.is_active %}Activo{% else %}Inactivo{% endif %}</div>
+      <div class="sub">último acceso {{ usuario.last_login|date:"d M Y H:i"|default:"nunca" }}</div>
+    </div>
+    <div class="kpi good">
+      <div class="tag">Actividad registrada</div>
+      <div class="value">{{ eventos_total }}</div>
+      <div class="sub">eventos de auditoría</div>
+    </div>
+  </div>
+
+  <div class="card-r">
+    <p class="card-titulo">Actividad reciente (auditoría real)</p>
+    <div class="tabla-wrap" style="border:0">
+      <table class="tabla-r">
+        <thead>
+          <tr><th>Fecha</th><th>Acción</th><th>Módulo</th><th>Detalle</th><th>IP</th></tr>
+        </thead>
+        <tbody>
+          {% for e in eventos %}
+            <tr>
+              <td>{{ e.timestamp|date:"d M Y H:i" }}</td>
+              <td><span class="code">{{ e.accion }}</span></td>
+              <td>{{ e.modulo }}</td>
+              <td class="small">{{ e.detalle|truncatechars:90 }}</td>
+              <td class="small">{{ e.ip|default:"—" }}</td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="5" class="muted">Sin actividad registrada aún.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+{% endblock content %}

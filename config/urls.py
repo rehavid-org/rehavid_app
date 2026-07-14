@@ -10,6 +10,10 @@ from drf_spectacular.views import SpectacularAPIView
 from drf_spectacular.views import SpectacularSwaggerView
 from rest_framework.authtoken.views import obtain_auth_token
 
+from rehavid_app.analitica.api.views import DashboardDataView
+from rehavid_app.analitica.api.views import RecomendacionesView
+from rehavid_app.predictivo.api import ScoreView
+
 urlpatterns = [
     path("", RedirectView.as_view(pattern_name="users:redirect"), name="home"),
     path(
@@ -42,6 +46,9 @@ urlpatterns = [
 urlpatterns += [
     # API base url
     path("api/", include("config.api_router")),
+    path("api/analitica/dashboard/", DashboardDataView.as_view(), name="api-analitica-dashboard"),
+    path("api/analitica/recomendaciones/", RecomendacionesView.as_view(), name="api-analitica-recos"),
+    path("api/predictivo/score/", ScoreView.as_view(), name="api-predictivo-score"),
     # DRF auth token
     path("api/auth-token/", obtain_auth_token, name="obtain_auth_token"),
     path("api/schema/", SpectacularAPIView.as_view(), name="api-schema"),

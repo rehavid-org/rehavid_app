@@ -1,0 +1,49 @@
+{% extends "layouts/app.html" %}
+
+{% block title %}Recomendaciones · REHAVID{% endblock title %}
+{% block miga %}Dirección · Motor de análisis{% endblock miga %}
+{% block titulo %}Recomendaciones{% endblock titulo %}
+{% block acciones %}
+  <form method="get" class="form-r">
+    <select name="area" onchange="this.form.submit()">
+      <option value="">Todas las áreas</option>
+      {% for a in areas %}
+        <option value="{{ a }}" {% if filtros.area == a %}selected{% endif %}>{{ a }}</option>
+      {% endfor %}
+    </select>
+  </form>
+{% endblock acciones %}
+
+{% block content %}
+  {% for f in findings %}
+    <div class="card-r" style="border-left:3px solid {% if f.severidad >= 4 %}var(--bad){% elif f.severidad == 3 %}var(--warn){% else %}var(--brand){% endif %}">
+      <div class="flex-between">
+        <div class="flex" style="gap:8px">
+          <span class="chip {% if f.severidad >= 4 %}cancelada{% elif f.severidad == 3 %}pendiente{% else %}info{% endif %}">
+            Severidad {{ f.severidad }}
+          </span>
+          <span class="chip neutra">{{ f.area }}</span>
+          <span class="chip neutra">{{ f.tag }}</span>
+        </div>
+        {% if request.user.nivel <= 2 %}
+          <form method="post" action="{% url 'analitica:crear_plan' f.id %}">
+            {% csrf_token %}
+            <button type="submit" class="btn-r mini primario">Convertir en plan</button>
+          </form>
+        {% endif %}
+      </div>
+      <h3 style="font-size:15px;margin:8px 0 4px">{{ f.titulo }}</h3>
+      <p class="small" style="margin:0 0 6px"><strong>Observación:</strong> {{ f.observacion }}</p>
+      <p class="small muted" style="margin:0 0 6px"><strong>Interpretación:</strong> {{ f.interpretacion }}</p>
+      <p class="small" style="margin:0"><strong>Recomendación:</strong> {{ f.recomendacion }}</p>
+      <p class="small muted mt-1" style="margin-bottom:0">
+        Responsable sugerido: {{ f.responsable_sugerido }} · plazo {{ f.plazo_dias }} días
+      </p>
+    </div>
+  {% empty %}
+    <div class="vacio-estado">
+      <div class="titulo">Sin hallazgos en esta área</div>
+      Los 11 detectores corrieron y la operación está dentro de los umbrales.
+    </div>
+  {% endfor %}
+{% endblock content %}

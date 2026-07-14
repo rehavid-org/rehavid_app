@@ -1,0 +1,29 @@
+{% extends "layouts/app.html" %}
+
+{% block title %}{{ titulo }} · REHAVID{% endblock title %}
+{% block miga %}Sistema · Administración{% endblock miga %}
+{% block titulo %}{{ titulo }}{% endblock titulo %}
+{% block acciones %}
+  <a class="btn-r" href="{% url 'administracion:usuarios' %}">← Volver a usuarios</a>
+{% endblock acciones %}
+
+{% block content %}
+  <form class="card-r form-r" method="post" style="max-width:720px">
+    {% csrf_token %}
+    {% if form.non_field_errors %}<div class="errores-form">{{ form.non_field_errors }}</div>{% endif %}
+    <div class="form-grid">
+      {% for campo in form %}
+        <div class="campo {% if campo.name == 'modulos_permitidos' or campo.name == 'permisos_extra' %}ancho{% endif %}">
+          <label for="{{ campo.id_for_label }}">{{ campo.label }}</label>
+          {{ campo }}
+          {% if campo.help_text %}<div class="ayuda">{{ campo.help_text }}</div>{% endif %}
+          {% if campo.errors %}<div class="error">{{ campo.errors.0 }}</div>{% endif %}
+        </div>
+      {% endfor %}
+    </div>
+    <div class="flex mt-2">
+      <button class="btn-r primario" type="submit">Guardar usuario</button>
+      <a class="btn-r" href="{% url 'administracion:usuarios' %}">Descartar</a>
+    </div>
+  </form>
+{% endblock content %}

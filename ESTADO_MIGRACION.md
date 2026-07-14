@@ -46,12 +46,15 @@ Bitácora de avance contra `PLAN_MIGRACION.md`. **Retomar por "PRÓXIMO PASO" ab
 - 154 tests en verde (incluye e2e solicitud→reserva escrito antes de la instrucción de posponer tests). Smoke con seed: portal 200 con monica (n4), bandeja+badge 200 con jhon (n2).
 - **Nota**: por pedido del usuario, de la Fase 6 en adelante se prioriza implementación; tests e2e quedan para el final (Fase 8).
 
-## ⏳ Fase 6 · Analítica/predictivo/alertas/planes/admin — NO INICIADA
-- Motor 11 detectores: spec exacta en `seed_data/MOTOR_RECOMENDACIONES.md` → portar a `analitica/services.py`.
-- Predictivo: portar mock heurístico de `../rehavid/backend/app/services/prediccion_service.py` a `predictivo/services.py` (flag `AZURE_ML_ENABLED` por settings, fallback automático).
-- Alertas: 4 detectores (copiar de `../rehavid/backend/app/routers/alertas.py` líneas 64-122) como servicio + task Celery beat; envío email real con anymail, WhatsApp/Teams stubs documentados.
-- KPIs dashboard/brief desde BD (B15) + endpoints JSON para ECharts.
-- CRUD planes y usuarios (B11/B13), export/import Excel con openpyxl (B14), vista auditoría.
+## ✅ Fase 6 · Analítica/predictivo/alertas/planes/admin/Excel — COMPLETA
+- **Analítica** (`analitica/services.py`): `kpis()` y `series_dashboard()` 100% desde BD (B15); **motor de 11 detectores** fiel a `MOTOR_RECOMENDACIONES.md` (`analizar()` tolera fallos por detector, ordena por severidad; con seed disparan 6: solicitudesPendientes S3, sesgoServicios, capacidadCiudad, evaluacionesMasivas, planesEnRiesgo, equiposCriticos). Vistas: **Brief** (KPIs + top findings + salidas/retornos próximos), **Dashboard** (filtros + ECharts 5.5: barras por servicio/ciudad/cliente en morado marca, evolución semanal, dona de estados con paleta validada con el validador de dataviz), **Recomendaciones** (cards con observación/interpretación/recomendación + **Convertir en plan** → `crear_plan_desde_finding`). Endpoints: `/api/analitica/dashboard/`, `/api/analitica/recomendaciones/` (nivel ≤2).
+- **Predictivo** (B16): `predictivo/services.py` = mock heurístico del prototipo + cliente Azure ML (`AZURE_ML_ENABLED/ENDPOINT/KEY/DEPLOYMENT` en settings por env) con fallback automático; registra todo en `PrediccionRegistro`. Vista con gauge ECharts, factores estilo SHAP, diagrama corporal SVG e historial. API `POST /api/predictivo/score/`.
+- **Alertas** (O21): `alertas/services.py` con los 4 detectores contra BD y fecha real (B9); envío **email real** (`send_mail`, verificado), WhatsApp/Teams stubs documentados que registran el intento; `AlertaEnviada` + auditoría. Config de canales en BD (B10) editable por nivel 1 desde la vista. Task `alertas.tasks.detectar_y_notificar` en `CELERY_BEAT_SCHEDULE` cada 4h.
+- **Planes**: CRUD completo (B11) con barra avance-vs-esperado; API `PlanViewSet` (contrato GET/POST/PUT/DELETE /planes).
+- **Admin usuarios** (nivel 1, B11/B13): lista con filtros, crear (UserCreationForm → Argon2), editar con **editor de módulos y permisos extra** (vacío = todos los del nivel), activar/desactivar (no a sí mismo), **ficha con actividad real de auditoría** (B12).
+- **Auditoría**: vista global con filtros (usuario/módulo/texto/fechas) + export.
+- **Excel openpyxl** (B14): helper `rehavid_app/xlsx.py` (estilo marca); export de reservas (respeta filtros, schema del modelo real), equipos, auditoría; **plantilla + import de equipos** validado todo-o-nada contra el modelo canónico (B7).
+- Smoke con seed (ariel n1): 16 rutas en 200, KPIs cuadran (57 reservas), finding→plan crea PL-010, email de alerta enviado y registrado, stub whatsapp registrado. 154 tests + ruff limpio.
 
 ## ⏳ Fase 7 · Docker producción + Azure — NO INICIADA
 Dockerfile multi-stage producción, compose producción, settings Azure (Blob/App Insights), CI/CD. Guía origen: `../rehavid/docs/instrucciones_azure_ingeniero.md`.

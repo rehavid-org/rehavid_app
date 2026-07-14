@@ -7,13 +7,17 @@ from django.shortcuts import redirect
 from django.urls import reverse_lazy
 from django.views.generic import CreateView
 from django.views.generic import ListView
+from openpyxl import load_workbook
+from openpyxl.utils.exceptions import InvalidFileException
 
 from rehavid_app.auditoria import services as auditoria
+from rehavid_app.catalogo.models import Ciudad
 from rehavid_app.catalogo.models import Servicio
 from rehavid_app.reservas import services as reservas_service
 from rehavid_app.reservas.services import ReservaError
 from rehavid_app.users.permissions import NivelRequeridoMixin
 from rehavid_app.users.permissions import nivel_requerido
+from rehavid_app.xlsx import workbook_response
 
 from .forms import BajaForm
 from .forms import EquipoForm
@@ -84,6 +88,106 @@ class EquipoCreateView(NivelRequeridoMixin, CreateView):
         ctx = super().get_context_data(**kwargs)
         ctx["modulo_activo"] = "equipos"
         return ctx
+
+
+COLUMNAS_IMPORT = ["codigo", "servicio", "modelo", "serial", "ciudad_base", "responsable", "notas"]
+
+
+@nivel_requerido(2)
+def export_view(request):
+    filas = [
+        [
+            e.codigo,
+            e.servicio.nombre,
+            e.modelo,
+            e.serial,
+            e.ciudad_base.nombre,
+            e.get_estado_display(),
+            e.responsable,
+            e.historial_uso,
+            e.ultima_revision,
+            e.proxima_mantencion,
+            e.notas,
+        ]
+        for e in Equipo.objects.select_related("servicio", "ciudad_base").order_by("codigo")
+    ]
+    auditoria.registrar(request.user, "export_equipos", "equipos", f"{len(filas)} filas")
+    return workbook_response(
+        "equipos_rehavid.xlsx",
+        "Equipos",
+        ["Código", "Categoría", "Modelo", "Serial", "Ciudad base", "Estado",
+         "Responsable", "Usos", "Última revisión", "Próx. mantención", "Notas"],
+        filas,
+    )
+
+
+@nivel_requerido(2)
+def plantilla_import_view(request):
+    """Plantilla con las columnas EXACTAS del modelo canónico (B7)."""
+    ejemplo = [["XS-99", "Xsens", "Xsens MVN Link", "SN-XS-099", "Medellín", "Bodega Medellín", ""]]
+    return workbook_response("plantilla_equipos.xlsx", "Plantilla equipos", COLUMNAS_IMPORT, ejemplo)
+
+
+def _validar_fila_import(fila, servicios: dict, ciudades: dict) -> tuple[Equipo | None, str | None]:
+    """Valida una fila de la plantilla contra el modelo canónico (B7)."""
+    codigo, servicio_n, modelo, serial, ciudad_n, responsable, notas = (
+        str(c).strip() if c is not None else "" for c in (list(fila) + [""] * 7)[:7]
+    )
+    if not all([codigo, servicio_n, modelo, serial, ciudad_n]):
+        return None, "codigo/servicio/modelo/serial/ciudad_base son obligatorios"
+    servicio = servicios.get(servicio_n.lower())
+    if servicio is None:
+        return None, f"servicio '{servicio_n}' no existe en el catálogo"
+    ciudad = ciudades.get(ciudad_n.lower())
+    if ciudad is None:
+        return None, f"ciudad '{ciudad_n}' no existe en el catálogo"
+    if Equipo.objects.filter(codigo=codigo).exists() or Equipo.objects.filter(serial=serial).exists():
+        return None, f"código {codigo} o serial {serial} ya existen en el inventario"
+    equipo = Equipo(
+        codigo=codigo, servicio=servicio, modelo=modelo, serial=serial,
+        ciudad_base=ciudad, responsable=responsable, notas=notas,
+    )
+    return equipo, None
+
+
+@nivel_requerido(2)
+def import_view(request):
+    """B7/B14 · import validado contra el modelo canónico; todo-o-nada."""
+    archivo = request.FILES.get("archivo")
+    if not archivo:
+        messages.error(request, "Adjunte el archivo .xlsx (use la plantilla)")
+        return redirect("equipos:lista")
+
+    try:
+        wb = load_workbook(archivo, read_only=True, data_only=True)
+    except (InvalidFileException, KeyError, OSError):
+        messages.error(request, "El archivo no es un .xlsx válido")
+        return redirect("equipos:lista")
+    ws = wb.active
+    filas = list(ws.iter_rows(values_only=True))
+    if not filas or [str(c or "").strip().lower() for c in filas[0][: len(COLUMNAS_IMPORT)]] != COLUMNAS_IMPORT:
+        messages.error(request, f"Encabezados inválidos. Use la plantilla: {', '.join(COLUMNAS_IMPORT)}")
+        return redirect("equipos:lista")
+
+    servicios = {s.nombre.lower(): s for s in Servicio.objects.all()}
+    ciudades = {c.nombre.lower(): c for c in Ciudad.objects.all()}
+    errores, nuevos = [], []
+    for idx, fila in enumerate(filas[1:], start=2):
+        if not any(fila):
+            continue
+        equipo, error = _validar_fila_import(fila, servicios, ciudades)
+        if error:
+            errores.append(f"Fila {idx}: {error}")
+        else:
+            nuevos.append(equipo)
+
+    if errores:
+        messages.error(request, "Import rechazado (nada se creó): " + " · ".join(errores[:8]))
+        return redirect("equipos:lista")
+    Equipo.objects.bulk_create(nuevos)
+    auditoria.registrar(request.user, "import_equipos", "equipos", f"{len(nuevos)} equipos importados")
+    messages.success(request, f"{len(nuevos)} equipo(s) importados al inventario")
+    return redirect("equipos:lista")
 
 
 @nivel_requerido(2)

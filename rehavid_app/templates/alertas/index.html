@@ -1,0 +1,108 @@
+{% extends "layouts/app.html" %}
+
+{% block title %}Alertas logísticas · REHAVID{% endblock title %}
+{% block miga %}Operación · Alertas{% endblock miga %}
+{% block titulo %}Alertas logísticas{% endblock titulo %}
+
+{% block content %}
+  <div class="row g-3">
+    <div class="col-lg-7">
+      <div class="card-r">
+        <p class="card-titulo">Detectadas ahora · {{ alertas|length }}</p>
+        {% for a in alertas %}
+          <div class="flex-between" style="padding:10px 0;border-bottom:1px solid var(--line-3)">
+            <div>
+              <strong>{{ a.icono }} {{ a.titulo }}</strong>
+              <span class="chip info">{{ a.cantidad }}</span>
+              <div class="small muted">{{ a.detalle }}</div>
+            </div>
+            <form method="post" action="{% url 'alertas:enviar' %}" class="form-r flex" style="gap:6px">
+              {% csrf_token %}
+              <input type="hidden" name="tipo" value="{{ a.tipo }}" />
+              <input type="hidden" name="mensaje" value="{{ a.titulo }}: {{ a.detalle }}" />
+              <select name="canal" style="width:130px">
+                {% for c in canales %}
+                  <option value="{{ c.canal }}" {% if c.canal == a.canal_sugerido %}selected{% endif %}>{{ c.label }}</option>
+                {% endfor %}
+              </select>
+              <button type="submit" class="btn-r mini primario">Enviar</button>
+            </form>
+          </div>
+        {% empty %}
+          <div class="vacio-estado">
+            <div class="titulo">Sin alertas activas</div>
+            Despachos, retornos, mantenciones y preparación están al día.
+          </div>
+        {% endfor %}
+        <p class="small muted mt-1" style="margin-bottom:0">
+          La detección también corre programada cada 4 horas (Celery beat) y notifica
+          por los canales activos.
+        </p>
+      </div>
+
+      <div class="card-r">
+        <p class="card-titulo">Últimos envíos</p>
+        <div class="tabla-wrap" style="border:0">
+          <table class="tabla-r">
+            <thead>
+              <tr><th>Fecha</th><th>Tipo</th><th>Canal</th><th>Destino</th><th>Resultado</th></tr>
+            </thead>
+            <tbody>
+              {% for h in historial %}
+                <tr>
+                  <td>{{ h.timestamp|date:"d M H:i" }}</td>
+                  <td>{{ h.tipo }}</td>
+                  <td>{{ h.get_canal_display }}</td>
+                  <td>{{ h.destino }}</td>
+                  <td>
+                    {% if "stub" in h.resultado %}<span class="chip pendiente">stub</span>
+                    {% elif "error" in h.resultado %}<span class="chip cancelada">error</span>
+                    {% else %}<span class="chip ok">enviado</span>{% endif %}
+                  </td>
+                </tr>
+              {% empty %}
+                <tr><td colspan="5" class="muted">Aún no se han enviado alertas.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-5">
+      <div class="card-r form-r">
+        <p class="card-titulo">Canales de notificación</p>
+        {% if request.user.nivel == 1 %}
+          <form method="post" action="{% url 'alertas:canales' %}">
+            {% csrf_token %}
+            {% for c in canales %}
+              <div class="campo" style="border-bottom:1px solid var(--line-3);padding-bottom:10px">
+                <label class="flex" style="text-transform:none;letter-spacing:0;font-size:13px;gap:8px">
+                  <input type="checkbox" name="activo-{{ c.canal }}" {% if c.config.activo %}checked{% endif %} style="width:auto" />
+                  <strong>{{ c.label }}</strong>
+                </label>
+                <input type="text"
+                       name="destino-{{ c.canal }}"
+                       value="{{ c.config.destino|default:'' }}"
+                       placeholder="{% if c.canal == 'email' %}correo@rehavid.com.co{% elif c.canal == 'whatsapp' %}+57 300 000 0000{% else %}Canal de Teams{% endif %}" />
+              </div>
+            {% endfor %}
+            <button class="btn-r primario" type="submit">Guardar canales</button>
+          </form>
+        {% else %}
+          {% for c in canales %}
+            <div class="flex-between" style="padding:8px 0;border-bottom:1px solid var(--line-3)">
+              <span>{{ c.label }} <span class="small muted">{{ c.config.destino|default:"sin destino" }}</span></span>
+              {% if c.config.activo %}<span class="chip ok">activo</span>{% else %}<span class="chip neutra">inactivo</span>{% endif %}
+            </div>
+          {% endfor %}
+          <p class="small muted mt-1">Solo el Admin Global modifica los canales.</p>
+        {% endif %}
+        <p class="small muted mt-1" style="margin-bottom:0">
+          Email envía de verdad (SMTP configurado). WhatsApp y Teams registran el intento
+          hasta contratar WhatsApp Business API / Microsoft Graph.
+        </p>
+      </div>
+    </div>
+  </div>
+{% endblock content %}

@@ -1,9 +1,11 @@
 from django.urls import path
+from django.views.decorators.http import require_POST
 
-from rehavid_app.users.views import ModuloEnMigracionView
+from . import views
 
 app_name = "alertas"
 urlpatterns = [
-    # Fase 6
-    path("", ModuloEnMigracionView.as_view(modulo="alertas", titulo="Alertas logísticas"), name="index"),
+    path("", views.AlertasView.as_view(), name="index"),
+    path("enviar/", require_POST(views.enviar_view), name="enviar"),
+    path("canales/", require_POST(views.guardar_canales_view), name="canales"),
 ]

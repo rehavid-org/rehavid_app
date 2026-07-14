@@ -1,0 +1,100 @@
+{% extends "layouts/app.html" %}
+
+{% block title %}Planes de acción · REHAVID{% endblock title %}
+{% block miga %}Dirección · Planes{% endblock miga %}
+{% block titulo %}Planes de acción{% endblock titulo %}
+{% block acciones %}
+  {% if request.user.nivel <= 2 %}
+    <a class="btn-r primario" href="{% url 'planes:nuevo' %}">+ Nuevo plan</a>
+  {% endif %}
+{% endblock acciones %}
+
+{% block content %}
+  <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr)">
+    <div class="kpi accent">
+      <div class="tag">Abiertos</div>
+      <div class="value">{{ kpi_abiertos }}</div>
+    </div>
+    <div class="kpi alert">
+      <div class="tag">En riesgo</div>
+      <div class="value">{{ kpi_riesgo }}</div>
+      <div class="sub">avance por debajo del esperado</div>
+    </div>
+    <div class="kpi good">
+      <div class="tag">Completados</div>
+      <div class="value">{{ kpi_completados }}</div>
+    </div>
+  </div>
+
+  <form class="filtros form-r" method="get">
+    <div class="campo">
+      <label for="f-estado">Estado</label>
+      <select id="f-estado" name="estado" onchange="this.form.submit()">
+        <option value="">Todos</option>
+        {% for valor, etiqueta in estados %}
+          <option value="{{ valor }}" {% if filtros.estado == valor %}selected{% endif %}>{{ etiqueta }}</option>
+        {% endfor %}
+      </select>
+    </div>
+  </form>
+
+  <div class="tabla-wrap">
+    <table class="tabla-r">
+      <thead>
+        <tr>
+          <th>Código</th>
+          <th>Área</th>
+          <th>Plan</th>
+          <th>Responsable</th>
+          <th>Vence</th>
+          <th style="min-width:160px">Avance vs esperado</th>
+          <th>Estado</th>
+          {% if request.user.nivel <= 2 %}<th>Acciones</th>{% endif %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in planes %}
+          <tr>
+            <td><span class="code">{{ p.codigo }}</span></td>
+            <td>{{ p.area }}</td>
+            <td>
+              {{ p.titulo }}
+              {% if p.descripcion %}<div class="small muted">{{ p.descripcion|truncatechars:90 }}</div>{% endif %}
+            </td>
+            <td>{{ p.responsable }}</td>
+            <td>{{ p.vence|date:"d M Y" }}</td>
+            <td>
+              <div style="background:var(--paper-3);height:8px;position:relative">
+                <div style="width:{{ p.esperado }}%;background:var(--line-2);height:8px;position:absolute"></div>
+                <div style="width:{{ p.avance }}%;background:{% if p.estado == 'risk' %}var(--bad){% elif p.estado == 'done' %}var(--good){% else %}var(--brand){% endif %};height:8px;position:absolute"></div>
+              </div>
+              <span class="small muted">{{ p.avance }}% de {{ p.esperado }}% esperado</span>
+            </td>
+            <td>
+              {% if p.estado == "open" %}<span class="chip info">Abierto</span>
+              {% elif p.estado == "risk" %}<span class="chip cancelada">En riesgo</span>
+              {% else %}<span class="chip ok">Completado</span>{% endif %}
+            </td>
+            {% if request.user.nivel <= 2 %}
+              <td>
+                <div class="flex" style="gap:4px">
+                  <a class="btn-r mini" href="{% url 'planes:editar' p.pk %}">Editar</a>
+                  <a class="btn-r mini peligro" href="{% url 'planes:eliminar' p.pk %}">Eliminar</a>
+                </div>
+              </td>
+            {% endif %}
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="8">
+              <div class="vacio-estado">
+                <div class="titulo">Sin planes en este filtro</div>
+                Cree planes manualmente o desde las recomendaciones del motor.
+              </div>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endblock content %}

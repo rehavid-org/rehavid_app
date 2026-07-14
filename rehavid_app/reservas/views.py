@@ -10,10 +10,12 @@ from django.urls import reverse_lazy
 from django.views.generic import FormView
 from django.views.generic import ListView
 
+from rehavid_app.auditoria import services as auditoria
 from rehavid_app.catalogo.models import Ciudad
 from rehavid_app.catalogo.models import Servicio
 from rehavid_app.users.permissions import NivelRequeridoMixin
 from rehavid_app.users.permissions import nivel_requerido
+from rehavid_app.xlsx import workbook_response
 
 from . import services
 from .forms import CancelarForm
@@ -27,6 +29,35 @@ if TYPE_CHECKING:
     from rehavid_app.paquetes.models import Paquete
 
 
+def filtrar_reservas(params):
+    """Filtros compartidos por la lista y el export Excel."""
+    qs = (
+        Reserva.objects.select_related(
+            "servicio", "cliente", "ciudad", "paquete", "confirmacion_retorno",
+        )
+        .prefetch_related("equipos")
+        .order_by("-fecha_salida")
+    )
+    if q := params.get("q", "").strip():
+        qs = qs.filter(codigo__icontains=q) | qs.filter(cliente__nombre__icontains=q)
+    if servicio := params.get("servicio"):
+        qs = qs.filter(servicio_id=servicio)
+    if ciudad := params.get("ciudad"):
+        qs = qs.filter(ciudad_id=ciudad)
+    estado = params.get("estado", "")
+    if estado == "activas":
+        qs = qs.filter(cancelada=False, confirmacion_retorno__isnull=True)
+    elif estado == "canceladas":
+        qs = qs.filter(cancelada=True)
+    elif estado == "retornadas":
+        qs = qs.filter(confirmacion_retorno__isnull=False)
+    if desde := params.get("desde"):
+        qs = qs.filter(fecha_salida__gte=desde)
+    if hasta := params.get("hasta"):
+        qs = qs.filter(fecha_salida__lte=hasta)
+    return qs.distinct()
+
+
 class ReservaListView(NivelRequeridoMixin, ListView):
     nivel_maximo = 2
     model = Reserva
@@ -35,32 +66,7 @@ class ReservaListView(NivelRequeridoMixin, ListView):
     paginate_by = 25
 
     def get_queryset(self):
-        qs = (
-            Reserva.objects.select_related(
-                "servicio", "cliente", "ciudad", "paquete", "confirmacion_retorno",
-            )
-            .prefetch_related("equipos")
-            .order_by("-fecha_salida")
-        )
-        p = self.request.GET
-        if q := p.get("q", "").strip():
-            qs = qs.filter(codigo__icontains=q) | qs.filter(cliente__nombre__icontains=q)
-        if servicio := p.get("servicio"):
-            qs = qs.filter(servicio_id=servicio)
-        if ciudad := p.get("ciudad"):
-            qs = qs.filter(ciudad_id=ciudad)
-        estado = p.get("estado", "")
-        if estado == "activas":
-            qs = qs.filter(cancelada=False, confirmacion_retorno__isnull=True)
-        elif estado == "canceladas":
-            qs = qs.filter(cancelada=True)
-        elif estado == "retornadas":
-            qs = qs.filter(confirmacion_retorno__isnull=False)
-        if desde := p.get("desde"):
-            qs = qs.filter(fecha_salida__gte=desde)
-        if hasta := p.get("hasta"):
-            qs = qs.filter(fecha_salida__lte=hasta)
-        return qs.distinct()
+        return filtrar_reservas(self.request.GET)
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
@@ -112,6 +118,35 @@ class ReservaCreateView(NivelRequeridoMixin, FormView):
         ctx = super().get_context_data(**kwargs)
         ctx["modulo_activo"] = "reservas"
         return ctx
+
+
+@nivel_requerido(2)
+def export_view(request):
+    """B14 · export server-side con el schema del modelo real (sin columnas fantasma)."""
+    filas = [
+        [
+            r.codigo,
+            r.servicio.nombre,
+            r.cliente.nombre,
+            r.ciudad.nombre,
+            r.personas,
+            r.fecha_salida,
+            r.fecha_retorno_esp,
+            "cancelada" if r.cancelada else ("retornada" if getattr(r, "confirmacion_retorno", None) else "activa"),
+            ", ".join(e.codigo for e in r.equipos.all()),
+            r.paquete.codigo if r.paquete else "",
+            round(r.riesgo, 2),
+        ]
+        for r in filtrar_reservas(request.GET)
+    ]
+    auditoria.registrar(request.user, "export_reservas", "reservas", f"{len(filas)} filas")
+    return workbook_response(
+        "reservas_rehavid.xlsx",
+        "Reservas",
+        ["Código", "Servicio", "Cliente", "Ciudad", "Personas", "Salida", "Retorno esp.",
+         "Estado", "Equipos", "Paquete", "Riesgo"],
+        filas,
+    )
 
 
 @nivel_requerido(2)

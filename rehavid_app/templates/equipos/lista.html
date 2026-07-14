@@ -5,6 +5,9 @@
 {% block titulo %}Equipos de medición{% endblock titulo %}
 {% block acciones %}
   {% if request.user.nivel <= 2 %}
+    <a class="btn-r" href="{% url 'equipos:export' %}">Exportar Excel</a>
+    <a class="btn-r" href="{% url 'equipos:plantilla' %}">Plantilla import</a>
+    <button class="btn-r" type="button" data-bs-toggle="modal" data-bs-target="#modalImport">Importar</button>
     <a class="btn-r primario" href="{% url 'equipos:alta' %}">+ Agregar equipo</a>
   {% endif %}
 {% endblock acciones %}
@@ -146,6 +149,32 @@
 {% endblock content %}
 
 {% block modal %}
+  <div class="modal fade" id="modalImport" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <form class="modal-content form-r" method="post" action="{% url 'equipos:importar' %}" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="modal-header">
+          <h5 class="modal-title">Importar equipos desde Excel</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body">
+          <div class="campo">
+            <label>Archivo .xlsx (columnas de la plantilla)</label>
+            <input type="file" name="archivo" accept=".xlsx" required />
+          </div>
+          <p class="small muted">
+            Validación todo-o-nada contra el modelo canónico: servicio y ciudad deben existir
+            en el catálogo; código y serial deben ser únicos. Si una fila falla, nada se importa.
+          </p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-r" data-bs-dismiss="modal">Cerrar</button>
+          <button type="submit" class="btn-r primario">Importar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <div class="modal fade" id="modalFicha" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg">
       <div class="modal-content">

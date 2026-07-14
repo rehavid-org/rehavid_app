@@ -1,0 +1,87 @@
+{% extends "layouts/app.html" %}
+
+{% block title %}Auditoría · REHAVID{% endblock title %}
+{% block miga %}Sistema · Auditoría{% endblock miga %}
+{% block titulo %}Auditoría{% endblock titulo %}
+{% block acciones %}
+  <a class="btn-r" href="{% url 'auditoria:export' %}?{{ filtros.urlencode }}">Exportar Excel</a>
+{% endblock acciones %}
+
+{% block content %}
+  <form class="filtros form-r" method="get">
+    <div class="campo grow">
+      <label for="f-q">Buscar</label>
+      <input id="f-q" type="text" name="q" value="{{ filtros.q }}" placeholder="Acción o detalle…" />
+    </div>
+    <div class="campo">
+      <label for="f-usuario">Usuario</label>
+      <select id="f-usuario" name="usuario">
+        <option value="">Todos</option>
+        {% for u in usuarios %}
+          <option value="{{ u.pk }}" {% if filtros.usuario == u.pk|stringformat:"s" %}selected{% endif %}>
+            {{ u.name|default:u.email }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="campo">
+      <label for="f-modulo">Módulo</label>
+      <select id="f-modulo" name="modulo">
+        <option value="">Todos</option>
+        {% for m in modulos %}
+          <option value="{{ m }}" {% if filtros.modulo == m %}selected{% endif %}>{{ m }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="campo">
+      <label for="f-desde">Desde</label>
+      <input id="f-desde" type="date" name="desde" value="{{ filtros.desde }}" />
+    </div>
+    <div class="campo">
+      <label for="f-hasta">Hasta</label>
+      <input id="f-hasta" type="date" name="hasta" value="{{ filtros.hasta }}" />
+    </div>
+    <button class="btn-r" type="submit">Filtrar</button>
+  </form>
+
+  <div class="tabla-wrap">
+    <table class="tabla-r">
+      <thead>
+        <tr><th>Fecha</th><th>Usuario</th><th>Acción</th><th>Módulo</th><th>Detalle</th><th>IP</th></tr>
+      </thead>
+      <tbody>
+        {% for e in eventos %}
+          <tr>
+            <td style="white-space:nowrap">{{ e.timestamp|date:"d M Y H:i:s" }}</td>
+            <td>
+              {{ e.user_nombre|default:e.user_email }}
+              <div class="small muted">{{ e.user_email }}</div>
+            </td>
+            <td><span class="code">{{ e.accion }}</span></td>
+            <td><span class="chip neutra">{{ e.modulo }}</span></td>
+            <td class="small">{{ e.detalle|truncatechars:110 }}</td>
+            <td class="small">{{ e.ip|default:"—" }}</td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="6">
+              <div class="vacio-estado"><div class="titulo">Sin eventos con estos filtros</div></div>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if is_paginated %}
+    <div class="flex mt-2">
+      {% if page_obj.has_previous %}
+        <a class="btn-r mini" href="?{{ filtros.urlencode }}&page={{ page_obj.previous_page_number }}">← Anterior</a>
+      {% endif %}
+      <span class="small muted">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }} · {{ page_obj.paginator.count }} eventos</span>
+      {% if page_obj.has_next %}
+        <a class="btn-r mini" href="?{{ filtros.urlencode }}&page={{ page_obj.next_page_number }}">Siguiente →</a>
+      {% endif %}
+    </div>
+  {% endif %}
+{% endblock content %}

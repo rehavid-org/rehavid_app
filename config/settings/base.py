@@ -378,5 +378,19 @@ SPECTACULAR_SETTINGS = {
     "SERVE_PERMISSIONS": ["rest_framework.permissions.IsAdminUser"],
     "SCHEMA_PATH_PREFIX": "/api/",
 }
-# Your stuff...
+# REHAVID
 # ------------------------------------------------------------------------------
+# Predictivo MSK (B16) · mock heurístico por defecto; Azure ML por env
+AZURE_ML_ENABLED = env.bool("AZURE_ML_ENABLED", default=False)
+AZURE_ML_ENDPOINT = env("AZURE_ML_ENDPOINT", default="")
+AZURE_ML_KEY = env("AZURE_ML_KEY", default="")
+AZURE_ML_DEPLOYMENT = env("AZURE_ML_DEPLOYMENT", default="rehavid-msk-v1")
+
+# Alertas logísticas (O21) · detección programada con celery beat
+CELERY_BEAT_SCHEDULE = {
+    "detectar-alertas-logisticas": {
+        "task": "rehavid_app.alertas.tasks.detectar_y_notificar",
+        "schedule": 60 * 60 * 4,  # cada 4 horas
+    },
+}
+ALERTAS_EMAIL_FROM = env("ALERTAS_EMAIL_FROM", default="operaciones@rehavid.com.co")

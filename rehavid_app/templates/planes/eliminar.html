@@ -1,0 +1,17 @@
+{% extends "layouts/app.html" %}
+
+{% block title %}Eliminar plan · REHAVID{% endblock title %}
+{% block miga %}Dirección · Planes{% endblock miga %}
+{% block titulo %}Eliminar {{ object.codigo }}{% endblock titulo %}
+
+{% block content %}
+  <div class="card-r" style="max-width:560px">
+    <p>¿Eliminar el plan <strong>{{ object.codigo }} · {{ object.titulo }}</strong>?</p>
+    <p class="small muted">Si el plan ya no es viable, considere marcarlo Completado o dejar registro antes de borrarlo.</p>
+    <form method="post" class="flex mt-2">
+      {% csrf_token %}
+      <button type="submit" class="btn-r peligro">Eliminar plan</button>
+      <a class="btn-r" href="{% url 'planes:lista' %}">Volver sin eliminar</a>
+    </form>
+  </div>
+{% endblock content %}

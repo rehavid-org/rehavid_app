@@ -1,9 +1,9 @@
 from django.urls import path
 
-from rehavid_app.users.views import ModuloEnMigracionView
+from . import views
 
 app_name = "auditoria"
 urlpatterns = [
-    # Fase 6
-    path("", ModuloEnMigracionView.as_view(modulo="auditoria", titulo="Auditoría"), name="lista"),
+    path("", views.AuditoriaListView.as_view(), name="lista"),
+    path("export/", views.export_view, name="export"),
 ]

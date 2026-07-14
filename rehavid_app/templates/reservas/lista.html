@@ -4,6 +4,7 @@
 {% block miga %}Operación · Reservas{% endblock miga %}
 {% block titulo %}Reservas{% endblock titulo %}
 {% block acciones %}
+  <a class="btn-r" href="{% url 'reservas:export' %}?{{ filtros.urlencode }}">Exportar Excel</a>
   <a class="btn-r primario" href="{% url 'reservas:nueva' %}">+ Nueva reserva</a>
 {% endblock acciones %}
 

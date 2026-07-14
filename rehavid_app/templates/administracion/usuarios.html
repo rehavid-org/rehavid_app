@@ -1,0 +1,78 @@
+{% extends "layouts/app.html" %}
+
+{% block title %}Administración · REHAVID{% endblock title %}
+{% block miga %}Sistema · Administración{% endblock miga %}
+{% block titulo %}Usuarios{% endblock titulo %}
+{% block acciones %}
+  <a class="btn-r primario" href="{% url 'administracion:usuario_nuevo' %}">+ Nuevo usuario</a>
+{% endblock acciones %}
+
+{% block content %}
+  <form class="filtros form-r" method="get">
+    <div class="campo grow">
+      <label for="f-q">Buscar</label>
+      <input id="f-q" type="text" name="q" value="{{ filtros.q }}" placeholder="Nombre o correo…" />
+    </div>
+    <div class="campo">
+      <label for="f-nivel">Nivel</label>
+      <select id="f-nivel" name="nivel">
+        <option value="">Todos</option>
+        <option value="1" {% if filtros.nivel == "1" %}selected{% endif %}>1 · Admin Global</option>
+        <option value="2" {% if filtros.nivel == "2" %}selected{% endif %}>2 · Operador</option>
+        <option value="3" {% if filtros.nivel == "3" %}selected{% endif %}>3 · Coordinador</option>
+        <option value="4" {% if filtros.nivel == "4" %}selected{% endif %}>4 · Solicitante</option>
+      </select>
+    </div>
+    <button class="btn-r" type="submit">Filtrar</button>
+  </form>
+
+  <div class="tabla-wrap">
+    <table class="tabla-r">
+      <thead>
+        <tr>
+          <th>Usuario</th>
+          <th>Correo</th>
+          <th>Nivel</th>
+          <th>Empresa</th>
+          <th>Rol</th>
+          <th>Módulos</th>
+          <th>Estado</th>
+          <th>Último acceso</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in usuarios %}
+          <tr>
+            <td><strong>{{ u.name|default:u.username }}</strong></td>
+            <td class="small">{{ u.email }}</td>
+            <td><span class="chip info">{{ u.nivel }} · {{ u.get_nivel_display }}</span></td>
+            <td>{{ u.empresa.nombre|default:"—" }}</td>
+            <td class="small">{{ u.rol_descriptivo|default:"—" }}</td>
+            <td class="small">
+              {% if u.modulos_permitidos %}{{ u.modulos_permitidos|length }} explícitos{% else %}todos su nivel{% endif %}
+            </td>
+            <td>
+              {% if u.is_active %}<span class="chip ok">activo</span>{% else %}<span class="chip cancelada">inactivo</span>{% endif %}
+            </td>
+            <td class="small">{{ u.last_login|date:"d M Y H:i"|default:"nunca" }}</td>
+            <td>
+              <div class="flex" style="gap:4px">
+                <a class="btn-r mini" href="{% url 'administracion:usuario_ficha' u.pk %}">Ficha</a>
+                <a class="btn-r mini" href="{% url 'administracion:usuario_editar' u.pk %}">Editar</a>
+                {% if u.pk != request.user.pk %}
+                  <form method="post" action="{% url 'administracion:usuario_toggle' u.pk %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn-r mini {% if u.is_active %}peligro{% else %}verde{% endif %}">
+                      {% if u.is_active %}Desactivar{% else %}Activar{% endif %}
+                    </button>
+                  </form>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endblock content %}

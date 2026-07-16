@@ -1,7 +1,6 @@
 """Portal solicitante (nivel 4) y bandeja del operador (Fase 5).
 Toda mutación pasa por ``services.py``; las vistas solo orquestan."""
 
-import json
 from datetime import timedelta
 
 from django.contrib import messages
@@ -13,6 +12,7 @@ from django.views.generic import FormView
 from django.views.generic import ListView
 from django.views.generic import TemplateView
 
+from rehavid_app.auditoria import services as auditoria
 from rehavid_app.catalogo.models import AccesorioTipo
 from rehavid_app.catalogo.models import Servicio
 from rehavid_app.equipos.models import Equipo
@@ -22,6 +22,7 @@ from rehavid_app.reservas.services import ReservaError
 from rehavid_app.users.permissions import ModuloRequeridoMixin
 from rehavid_app.users.permissions import NivelRequeridoMixin
 from rehavid_app.users.permissions import nivel_requerido
+from rehavid_app.xlsx import workbook_response
 
 from . import services
 from .forms import CancelarSolicitudForm
@@ -155,7 +156,7 @@ class SolicitarView(ModuloRequeridoMixin, FormView):
             })
         ctx.update(
             modulo_activo="solicitar",
-            accesorios_json=json.dumps(accesorios_por_servicio),
+            accesorios_json=accesorios_por_servicio,
         )
         return ctx
 
@@ -181,6 +182,26 @@ class MisSolicitudesView(ModuloRequeridoMixin, ListView):
             observacion_form=ObservacionForm(),
         )
         return ctx
+
+
+@nivel_requerido(4)
+def export_mis_solicitudes_view(request):
+    """Export a Excel de las solicitudes propias del solicitante (nivel 4)."""
+    filas = [
+        [
+            s.codigo, s.fecha_solicitud, s.servicio.nombre, s.ciudad.nombre,
+            s.personas, s.fecha_confirmada, s.operador.name if s.operador else "",
+            s.estado_visual_display(),
+        ]
+        for s in Solicitud.objects.filter(solicitante=request.user).select_related("servicio", "ciudad", "operador")
+    ]
+    auditoria.registrar(request.user, "export_mis_solicitudes", "solicitudes", f"{len(filas)} filas")
+    return workbook_response(
+        "mis_solicitudes_rehavid.xlsx",
+        "Mis solicitudes",
+        ["Código", "Fecha solicitud", "Servicio", "Ciudad", "Personas", "Fecha confirmada", "Operador", "Estado"],
+        filas,
+    )
 
 
 def _solicitud_propia_o_operador(request, pk) -> Solicitud:

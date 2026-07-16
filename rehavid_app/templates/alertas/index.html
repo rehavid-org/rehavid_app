@@ -5,6 +5,54 @@
 {% block titulo %}Alertas logísticas{% endblock titulo %}
 
 {% block content %}
+  <div class="kpi-grid">
+    <div class="kpi {% if estado_reservas.no_retornadas %}alert{% endif %}">
+      <div class="tag">No retornadas</div>
+      <div class="value">{{ estado_reservas.no_retornadas }}</div>
+      <div class="sub">{% if estado_reservas.no_retornadas %}en mora{% else %}en mora · ninguna{% endif %}</div>
+    </div>
+    <div class="kpi {% if estado_reservas.vencen_pronto %}warn{% endif %}">
+      <div class="tag">Vencen en 3 días</div>
+      <div class="value">{{ estado_reservas.vencen_pronto }}</div>
+      <div class="sub">requieren seguimiento</div>
+    </div>
+    <div class="kpi">
+      <div class="tag">Programadas esta semana</div>
+      <div class="value">{{ estado_reservas.programadas_semana }}</div>
+      <div class="sub">salidas de esta semana</div>
+    </div>
+    <div class="kpi good">
+      <div class="tag">A tiempo</div>
+      <div class="value">{{ estado_reservas.a_tiempo }}</div>
+      <div class="sub">{{ estado_reservas.a_tiempo_pct }}% del backlog</div>
+    </div>
+  </div>
+
+  <div class="card-r">
+    <p class="card-titulo">Reservas próximas a vencer</p>
+    <div class="tabla-wrap" style="border:0">
+      <table class="tabla-r">
+        <thead>
+          <tr><th>Cliente</th><th>Servicio</th><th>Ciudad</th><th>Retorno esp.</th><th class="tar">Días</th><th>Acción sugerida</th></tr>
+        </thead>
+        <tbody>
+          {% for p in estado_reservas.proximas_a_vencer %}
+            <tr>
+              <td><strong>{{ p.reserva.cliente.nombre }}</strong></td>
+              <td>{{ p.reserva.servicio.nombre }}</td>
+              <td>{{ p.reserva.ciudad.nombre }}</td>
+              <td>{{ p.reserva.fecha_retorno_esp|date:"Y-m-d" }}</td>
+              <td class="tar">{% if p.dias >= 0 %}+{% endif %}{{ p.dias }}</td>
+              <td><span class="chip {% if p.clase == 'bad' %}cancelada{% elif p.clase == 'warn' %}pendiente{% else %}info{% endif %}">{{ p.accion }}</span></td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="6" class="muted">Sin alertas en la ventana operativa.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
   <div class="row g-3">
     <div class="col-lg-7">
       <div class="card-r">

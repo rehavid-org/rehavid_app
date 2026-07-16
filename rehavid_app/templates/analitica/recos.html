@@ -4,6 +4,7 @@
 {% block miga %}Dirección · Motor de análisis{% endblock miga %}
 {% block titulo %}Recomendaciones{% endblock titulo %}
 {% block acciones %}
+  <a class="btn-r" href="{% url 'analitica:recos' %}">Reanalizar ahora</a>
   <form method="get" class="form-r">
     <select name="area" onchange="this.form.submit()">
       <option value="">Todas las áreas</option>
@@ -15,6 +16,19 @@
 {% endblock acciones %}
 
 {% block content %}
+  <div class="flex" style="gap:8px;flex-wrap:wrap;margin-bottom:12px">
+    <a class="btn-r mini {% if not filtros.severidad %}primario{% endif %}" href="?area={{ filtros.area }}">Todos los hallazgos</a>
+    <a class="btn-r mini {% if filtros.severidad == 'criticos' %}primario{% endif %}" href="?severidad=criticos&area={{ filtros.area }}">Críticos · {{ resumen.criticos }}</a>
+    <a class="btn-r mini {% if filtros.severidad == 'importantes' %}primario{% endif %}" href="?severidad=importantes&area={{ filtros.area }}">Importantes · {{ resumen.importantes }}</a>
+    <a class="btn-r mini {% if filtros.severidad == 'atencion' %}primario{% endif %}" href="?severidad=atencion&area={{ filtros.area }}">Atención · {{ resumen.atencion }}</a>
+    <span class="small muted" style="margin-left:auto;align-self:center">Último escaneo: <strong>{{ resumen.actualizado|date:"d M Y H:i" }}</strong></span>
+  </div>
+
+  <div class="card-r">
+    <p class="card-titulo">Lectura ejecutiva del motor</p>
+    <p class="small mb-0">{{ resumen.texto }}</p>
+  </div>
+
   {% for f in findings %}
     <div class="card-r" style="border-left:3px solid {% if f.severidad >= 4 %}var(--bad){% elif f.severidad == 3 %}var(--warn){% else %}var(--brand){% endif %}">
       <div class="flex-between">

@@ -4,12 +4,20 @@
 {% block miga %}Operación · Paquetes{% endblock miga %}
 {% block titulo %}Paquetes multi-equipo{% endblock titulo %}
 {% block acciones %}
+  <a class="btn-r" href="{% url 'paquetes:export' %}">Exportar Excel</a>
   {% if request.user.nivel <= 2 %}
+    <a class="btn-r" href="{% url 'paquetes:plantilla' %}">Plantilla import</a>
+    <button class="btn-r" type="button" data-bs-toggle="modal" data-bs-target="#modalImport">Importar</button>
     <a class="btn-r primario" href="{% url 'paquetes:nuevo' %}">+ Nuevo paquete</a>
   {% endif %}
 {% endblock acciones %}
 
 {% block content %}
+  <div class="flex" style="gap:8px;margin-bottom:14px">
+    <a class="btn-r mini {% if tab == 'activos' %}primario{% endif %}" href="?tab=activos">Activos · {{ kpi_activos }}</a>
+    <a class="btn-r mini {% if tab == 'inactivos' %}primario{% endif %}" href="?tab=inactivos">Inactivos · {{ kpi_inactivos }}</a>
+    <a class="btn-r mini {% if tab == 'mas_usados' %}primario{% endif %}" href="?tab=mas_usados">Más usados</a>
+  </div>
   <div class="paquetes-grid">
     {% for t in tarjetas %}
       <div class="paquete-card {{ t.estado }}">
@@ -37,6 +45,7 @@
         </ul>
         <div class="small muted">
           Duración típica: {{ t.paquete.duracion_dias }} día{{ t.paquete.duracion_dias|pluralize }}
+          · Usos en 30 días: <strong>{{ t.uso_30d }}</strong>
           {% if t.proxima %}· Disponible completo desde <strong>{{ t.proxima|date:"d M Y" }}</strong>{% endif %}
         </div>
         {% if request.user.nivel <= 2 %}
@@ -54,3 +63,31 @@
     {% endfor %}
   </div>
 {% endblock content %}
+
+{% block modal %}
+  <div class="modal fade" id="modalImport" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <form class="modal-content form-r" method="post" action="{% url 'paquetes:importar' %}" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="modal-header">
+          <h5 class="modal-title">Importar paquetes desde Excel</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body">
+          <div class="campo">
+            <label>Archivo .xlsx (columnas de la plantilla)</label>
+            <input type="file" name="archivo" accept=".xlsx" required />
+          </div>
+          <p class="small muted">
+            Validación todo-o-nada: código único, servicios_requeridos separados por coma deben
+            existir en el catálogo. Si una fila falla, nada se importa.
+          </p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-r" data-bs-dismiss="modal">Cerrar</button>
+          <button type="submit" class="btn-r primario">Importar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+{% endblock modal %}

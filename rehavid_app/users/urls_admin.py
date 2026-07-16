@@ -5,6 +5,8 @@ from . import admin_views
 
 app_name = "administracion"
 urlpatterns = [
+    path("arquitectura/", admin_views.ArquitecturaView.as_view(), name="arquitectura"),
+    path("usuarios/export/", admin_views.export_usuarios_view, name="usuarios_export"),
     path("usuarios/", admin_views.UsuarioListView.as_view(), name="usuarios"),
     path("usuarios/nuevo/", admin_views.UsuarioCreateView.as_view(), name="usuario_nuevo"),
     path("usuarios/<int:pk>/editar/", admin_views.UsuarioUpdateView.as_view(), name="usuario_editar"),

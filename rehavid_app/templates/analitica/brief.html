@@ -1,37 +1,132 @@
 {% extends "layouts/app.html" %}
 
-{% block title %}Brief ejecutivo · REHAVID{% endblock title %}
-{% block miga %}Dirección · Brief{% endblock miga %}
-{% block titulo %}Brief ejecutivo{% endblock titulo %}
+{% block title %}Resumen ejecutivo · REHAVID{% endblock title %}
+{% block miga %}Dirección · Resumen ejecutivo{% endblock miga %}
+{% block titulo %}Resumen ejecutivo{% endblock titulo %}
 {% block acciones %}
   <a class="btn-r" href="{% url 'analitica:dashboard' %}">Dashboard completo</a>
 {% endblock acciones %}
 
 {% block content %}
+  <div class="row g-0" style="border-top:1px solid var(--line-3);border-bottom:1px solid var(--line-3);margin-bottom:24px">
+    <div class="col-3" style="padding:22px 24px;border-right:1px solid var(--line-3)">
+      <div class="small muted" style="text-transform:uppercase;letter-spacing:.05em;font-size:10px">Reservas activas</div>
+      <div style="font-size:32px;font-weight:700;color:var(--brand);margin-top:6px">{{ kpis.reservas_activas }}</div>
+      <div class="small muted" style="margin-top:4px">en operación esta semana</div>
+    </div>
+    <div class="col-3" style="padding:22px 24px;border-right:1px solid var(--line-3)">
+      <div class="small muted" style="text-transform:uppercase;letter-spacing:.05em;font-size:10px">Clientes asesorados</div>
+      <div style="font-size:32px;font-weight:700;color:var(--brand);margin-top:6px">{{ kpis.clientes_activos }}</div>
+      <div class="small muted" style="margin-top:4px">empresas en cartera activa</div>
+    </div>
+    <div class="col-3" style="padding:22px 24px;border-right:1px solid var(--line-3)">
+      <div class="small muted" style="text-transform:uppercase;letter-spacing:.05em;font-size:10px">Personas evaluadas</div>
+      <div style="font-size:32px;font-weight:700;color:var(--brand);margin-top:6px">{{ kpis.personas_evaluadas }}</div>
+      <div class="small muted" style="margin-top:4px">en evaluaciones biomecánicas</div>
+    </div>
+    <div class="col-3" style="padding:22px 24px">
+      <div class="small muted" style="text-transform:uppercase;letter-spacing:.05em;font-size:10px">Equipos disponibles / total</div>
+      <div style="font-size:32px;font-weight:700;color:var(--brand);margin-top:6px">{{ kpis.equipos_disponibles }} / {{ kpis.equipos_total }}</div>
+      <div class="small muted" style="margin-top:4px">disponibilidad operativa en tiempo real</div>
+    </div>
+  </div>
+
+  <div class="flex" style="gap:8px;align-items:center;margin-bottom:8px">
+    <span class="chip info">1</span>
+    <span class="small muted">Cima de la pirámide · Mensaje principal</span>
+  </div>
+
+  <div class="card-r accent">
+    <div class="small muted">Conclusión rectora · {{ resumen.hoy|date:"d M Y" }}</div>
+    {% if resumen.principal %}
+      <h2 class="serif" style="font-size:22px;margin:8px 0">{{ resumen.principal.titulo }}</h2>
+      <p class="small">{{ resumen.principal.recomendacion }}</p>
+    {% else %}
+      <h2 class="serif" style="font-size:22px;margin:8px 0">La operación está dentro de los umbrales configurados — sin hallazgos que requieran acción inmediata.</h2>
+    {% endif %}
+    <div class="flex" style="gap:24px;margin-top:12px;flex-wrap:wrap">
+      <span class="small muted">Actualizado <strong>{{ resumen.actualizado|date:"d M Y · H:i" }}</strong></span>
+      <span class="small muted">Cobertura <strong>{{ resumen.cobertura.reservas }} reservas · {{ resumen.cobertura.clientes }} clientes · {{ resumen.cobertura.ciudades }} ciudades</strong></span>
+      <span class="small muted">Confianza del análisis <strong>{{ resumen.confianza }}</strong></span>
+    </div>
+  </div>
+
+  {% if resumen.soporte %}
+    <div class="flex" style="gap:8px;align-items:center;margin:20px 0 8px">
+      <span class="chip info">2</span>
+      <span class="small muted">Soporte · Puntos clave que sustentan el mensaje</span>
+    </div>
+    <div class="row g-3">
+      {% for f in resumen.soporte %}
+        <div class="col-lg-4">
+          <div class="card-r" style="height:100%">
+            <span class="small muted">{{ forloop.counter|stringformat:"02d" }}</span>
+            <div class="small muted" style="margin:2px 0 6px">{{ f.area }} · {{ f.tag }}</div>
+            <h4 style="font-size:15px;margin:0 0 6px">{{ f.titulo }}</h4>
+            <p class="small">{{ f.observacion }}</p>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <div class="flex" style="gap:8px;align-items:center;margin:20px 0 8px">
+    <span class="chip info">3</span>
+    <span class="small muted">Base · Detalle e indicadores</span>
+  </div>
+
   <div class="kpi-grid">
     <div class="kpi accent">
       <div class="tag">Reservas activas</div>
-      <div class="value">{{ kpis.reservas_activas }} <span class="unidad">/ {{ kpis.reservas_total }}</span></div>
-      <div class="sub">{{ kpis.tasa_cancelacion }}% de cancelación histórica</div>
+      <div class="value">{{ kpis_base.reservas_semana }} <span class="unidad">{% if kpis_base.reservas_semana_delta >= 0 %}+{% endif %}{{ kpis_base.reservas_semana_delta }}</span></div>
+      <div class="sub">esta semana · vs semana anterior</div>
     </div>
     <div class="kpi good">
-      <div class="tag">Personas en evaluación</div>
-      <div class="value">{{ kpis.personas_evaluadas }}</div>
-      <div class="sub">{{ kpis.clientes_activos }} clientes · {{ kpis.ciudades_cubiertas }} ciudades</div>
+      <div class="tag">Contactos efectivos</div>
+      <div class="value">{{ kpis_base.contactos_semana }} <span class="unidad">{% if kpis_base.contactos_semana_delta >= 0 %}+{% endif %}{{ kpis_base.contactos_semana_delta }}</span></div>
+      <div class="sub">esta semana · vs semana anterior</div>
     </div>
     <div class="kpi">
-      <div class="tag">Flota</div>
-      <div class="value">{{ kpis.equipos_disponibles }} <span class="unidad">/ {{ kpis.equipos_total }}</span></div>
-      <div class="sub">equipos disponibles ahora</div>
+      <div class="tag">Utilización de flota</div>
+      <div class="value">{{ kpis_base.utilizacion_flota }}<span class="unidad">%</span></div>
+      <div class="sub">equipos en uso / total</div>
     </div>
-    <div class="kpi {% if kpis.solicitudes_pendientes %}warn{% endif %}">
-      <div class="tag">Pendientes de atender</div>
-      <div class="value">{{ kpis.solicitudes_pendientes }}</div>
-      <div class="sub">{{ kpis.planes_en_riesgo }} plan(es) en riesgo</div>
+    <div class="kpi {% if kpis_base.reservas_en_riesgo %}alert{% endif %}">
+      <div class="tag">Reservas en riesgo</div>
+      <div class="value">{{ kpis_base.reservas_en_riesgo }}</div>
+      <div class="sub">probabilidad de no retorno alta</div>
     </div>
   </div>
 
   <div class="row g-3">
+    <div class="col-lg-8">
+      <div class="card-r">
+        <p class="card-titulo">Composición del portafolio · servicio × ciudad</p>
+        <div id="ch-treemap-brief" style="height:320px"></div>
+      </div>
+    </div>
+    <div class="col-lg-4">
+      <div class="card-r">
+        <p class="card-titulo">Salud del backlog</p>
+        <div id="ch-salud-backlog" style="height:320px"></div>
+      </div>
+    </div>
+  </div>
+
+  {% if resumen.sintesis %}
+    <div class="card-r mt-2">
+      <div class="flex-between">
+        <p class="card-titulo">Síntesis</p>
+        <span class="chip neutra">Auto-generada</span>
+      </div>
+      <h5 class="serif" style="margin:4px 0 10px">Lectura ejecutiva del momento operativo</h5>
+      {% for f in resumen.sintesis %}
+        <p class="small">{{ f.observacion }} {{ f.interpretacion }}</p>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <div class="row g-3 mt-2">
     <div class="col-lg-7">
       <div class="card-r">
         <div class="flex-between">
@@ -47,6 +142,9 @@
               <strong>{{ f.titulo }}</strong>
             </div>
             <div class="small muted mt-1">{{ f.observacion }}</div>
+            <div class="small muted mt-1">
+              Responsable sugerido: {{ f.responsable_sugerido }} · plazo {{ f.plazo_dias }} días
+            </div>
           </div>
         {% empty %}
           <div class="vacio-estado">
@@ -82,3 +180,42 @@
     </div>
   </div>
 {% endblock content %}
+
+{% block inline_javascript %}
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+  <script>
+    window.addEventListener('DOMContentLoaded', () => {
+      const BRAND = '#4025CE', BRAND_LIGHT = '#6952DA', INK3 = '#5A4A95';
+      const treemap = {{ treemap_json|safe }};
+      if (treemap.length) {
+        echarts.init(document.getElementById('ch-treemap-brief')).setOption({
+          textStyle: { fontFamily: 'Outfit, Arial, sans-serif', color: INK3 },
+          tooltip: { trigger: 'item', formatter: '{b}: {c}' },
+          series: [{
+            type: 'treemap', roam: false, breadcrumb: { show: false },
+            label: { color: '#fff', fontFamily: 'Outfit, Arial, sans-serif' },
+            upperLabel: { show: true, height: 22, color: '#fff' },
+            data: treemap,
+            levels: [{ itemStyle: { borderColor: '#fff', borderWidth: 2, gapWidth: 2 } }],
+            color: [BRAND, BRAND_LIGHT, '#8B5CF6', '#B23B5C', '#00A055', '#B8770F'],
+          }],
+        });
+      }
+
+      echarts.init(document.getElementById('ch-salud-backlog')).setOption({
+        series: [{
+          type: 'gauge', radius: '90%', startAngle: 200, endAngle: -20, min: 0, max: 100,
+          axisLine: { lineStyle: { width: 14, color: [[0.4, '#B23B5C'], [0.7, '#B8770F'], [1, '#00A055']] } },
+          pointer: { length: '55%', width: 4, itemStyle: { color: '#1F1042' } },
+          axisTick: { distance: -18, length: 5, lineStyle: { color: '#fff', width: 1 } },
+          splitLine: { distance: -18, length: 10, lineStyle: { color: '#fff', width: 2 } },
+          axisLabel: { distance: -28, color: '#5A4A95', fontSize: 9, fontFamily: 'Outfit, Arial, sans-serif' },
+          anchor: { show: true, showAbove: true, size: 12, itemStyle: { borderWidth: 2, borderColor: '#1F1042', color: '#fff' } },
+          title: { offsetCenter: [0, '75%'], fontSize: 11, fontFamily: 'Outfit, Arial, sans-serif', color: '#5A4A95' },
+          detail: { offsetCenter: [0, '40%'], fontSize: 28, fontFamily: 'Outfit, Arial, sans-serif', color: '#1F1042', formatter: '{value}%' },
+          data: [{ value: {{ salud_backlog }}, name: 'Salud del backlog' }],
+        }],
+      });
+    });
+  </script>
+{% endblock inline_javascript %}

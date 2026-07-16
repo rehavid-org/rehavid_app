@@ -30,6 +30,7 @@ MENU_BY_LEVEL: dict[int, list[str]] = {
         "alertas",
         "admin",
         "auditoria",
+        "arquitectura",
     ],
     2: [
         "brief",

@@ -91,6 +91,55 @@ def detectar_alertas() -> list[dict]:
     return alertas
 
 
+VENCE_PRONTO_DIAS = 3
+VENTANA_TABLA_ATRAS = 2
+VENTANA_TABLA_ADELANTE = 5
+
+
+def estado_reservas() -> dict:
+    """KPIs "Estado de reservas en curso" + tabla de próximas a vencer.
+    En el prototipo origen estos 4 KPIs eran texto fijo hardcodeado y
+    desincronizado de los datos (no había ningún cálculo detrás); acá
+    salen de la BD con fecha real (B9)."""
+    hoy = timezone.localdate()
+    inicio_semana = hoy - timedelta(days=hoy.weekday())
+    backlog = Reserva.objects.filter(cancelada=False, confirmacion_retorno__isnull=True)
+    no_retornadas = backlog.filter(fecha_retorno_esp__lt=hoy).count()
+    vencen_pronto = backlog.filter(
+        fecha_retorno_esp__gte=hoy, fecha_retorno_esp__lte=hoy + timedelta(days=VENCE_PRONTO_DIAS),
+    ).count()
+    a_tiempo = backlog.count() - no_retornadas - vencen_pronto
+    programadas_semana = Reserva.objects.filter(
+        cancelada=False, fecha_salida__gte=inicio_semana, fecha_salida__lt=inicio_semana + timedelta(days=7),
+    ).count()
+
+    proximas = []
+    qs = backlog.filter(
+        fecha_retorno_esp__gte=hoy - timedelta(days=VENTANA_TABLA_ATRAS),
+        fecha_retorno_esp__lte=hoy + timedelta(days=VENTANA_TABLA_ADELANTE),
+    ).select_related("servicio", "cliente", "ciudad").order_by("fecha_retorno_esp")
+    for r in qs:
+        dias = (r.fecha_retorno_esp - hoy).days
+        if dias < 0:
+            accion, clase = "Contactar cliente · vencido", "bad"
+        elif dias <= 1:
+            accion, clase = "Confirmar retorno hoy", "warn"
+        elif dias <= VENCE_PRONTO_DIAS:
+            accion, clase = "Pre-aviso de retorno", "warn"
+        else:
+            accion, clase = "Monitorear", "info"
+        proximas.append({"reserva": r, "dias": dias, "accion": accion, "clase": clase})
+
+    return {
+        "no_retornadas": no_retornadas,
+        "vencen_pronto": vencen_pronto,
+        "programadas_semana": programadas_semana,
+        "a_tiempo": a_tiempo,
+        "a_tiempo_pct": round(100 * a_tiempo / backlog.count()) if backlog.count() else 100,
+        "proximas_a_vencer": proximas,
+    }
+
+
 # ────────────────────────────────────────────────────────────
 # Envío por canal
 # ────────────────────────────────────────────────────────────

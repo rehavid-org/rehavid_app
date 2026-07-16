@@ -4,7 +4,10 @@
 {% block miga %}Dirección · Planes{% endblock miga %}
 {% block titulo %}Planes de acción{% endblock titulo %}
 {% block acciones %}
+  <a class="btn-r" href="{% url 'planes:export' %}">Exportar Excel</a>
   {% if request.user.nivel <= 2 %}
+    <a class="btn-r" href="{% url 'planes:plantilla' %}">Plantilla import</a>
+    <button class="btn-r" type="button" data-bs-toggle="modal" data-bs-target="#modalImport">Importar</button>
     <a class="btn-r primario" href="{% url 'planes:nuevo' %}">+ Nuevo plan</a>
   {% endif %}
 {% endblock acciones %}
@@ -23,6 +26,39 @@
     <div class="kpi good">
       <div class="tag">Completados</div>
       <div class="value">{{ kpi_completados }}</div>
+    </div>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-lg-4">
+      <div class="card-r">
+        <p class="card-titulo">Resumen del módulo</p>
+        <div class="flex-between" style="padding:6px 0;border-bottom:1px solid var(--line-3)"><span class="small muted">Planes totales</span><strong>{{ resumen.total }}</strong></div>
+        <div class="flex-between" style="padding:6px 0;border-bottom:1px solid var(--line-3)"><span class="small muted">Avance promedio</span><strong>{{ resumen.avance_promedio }}%</strong></div>
+        <div class="flex-between" style="padding:6px 0;border-bottom:1px solid var(--line-3)">
+          <span class="small muted">Próximo vencimiento</span>
+          <strong>{% if resumen.proximo_vencimiento_dias is not None %}{{ resumen.proximo_vencimiento_dias }} días{% else %}—{% endif %}</strong>
+        </div>
+        <p class="small muted mt-2" style="margin-bottom:4px">Apps origen</p>
+        {% for area, n in resumen.por_area %}
+          <div class="flex-between" style="padding:4px 0"><span class="small muted">{{ area }}</span><strong>{{ n }}</strong></div>
+        {% endfor %}
+      </div>
+    </div>
+    <div class="col-lg-8">
+      <div class="card-r">
+        <p class="card-titulo">¿Vamos bien o mal con los planes?</p>
+        {% if resumen.en_riesgo %}
+          <p class="small">
+            De los {{ resumen.total }} planes, {{ resumen.en_riesgo|length }} muestra{{ resumen.en_riesgo|length|pluralize }}
+            <strong>señal de riesgo</strong> (avance por debajo de lo esperado):
+            {% for p in resumen.en_riesgo %}{{ p.titulo }} (responsable {{ p.responsable }}, {{ p.avance }}% de avance vs {{ p.esperado }}% esperado){% if not forloop.last %} · {% endif %}{% endfor %}.
+          </p>
+          <p class="small muted mb-0"><strong>Acción sugerida:</strong> escalar estos planes en el próximo comité de seguimiento.</p>
+        {% else %}
+          <p class="small mb-0">Ningún plan está en riesgo actualmente — avance promedio {{ resumen.avance_promedio }}%.</p>
+        {% endif %}
+      </div>
     </div>
   </div>
 
@@ -98,3 +134,31 @@
     </table>
   </div>
 {% endblock content %}
+
+{% block modal %}
+  <div class="modal fade" id="modalImport" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <form class="modal-content form-r" method="post" action="{% url 'planes:importar' %}" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="modal-header">
+          <h5 class="modal-title">Importar planes desde Excel</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body">
+          <div class="campo">
+            <label>Archivo .xlsx (columnas de la plantilla)</label>
+            <input type="file" name="archivo" accept=".xlsx" required />
+          </div>
+          <p class="small muted">
+            Validación todo-o-nada: fecha en formato YYYY-MM-DD, avance/esperado entre 0-100,
+            estado debe ser open/risk/done. Si una fila falla, nada se importa.
+          </p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-r" data-bs-dismiss="modal">Cerrar</button>
+          <button type="submit" class="btn-r primario">Importar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+{% endblock modal %}

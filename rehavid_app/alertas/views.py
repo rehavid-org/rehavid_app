@@ -25,6 +25,7 @@ class AlertasView(ModuloRequeridoMixin, TemplateView):
         ctx.update(
             modulo_activo="alertas",
             alertas=services.detectar_alertas(),
+            estado_reservas=services.estado_reservas(),
             canales=[
                 {
                     "canal": valor,

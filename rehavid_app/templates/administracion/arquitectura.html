@@ -1,0 +1,127 @@
+{% extends "layouts/app.html" %}
+
+{% block title %}Arquitectura macro-app · REHAVID{% endblock title %}
+{% block miga %}Sistema · Arquitectura{% endblock miga %}
+{% block titulo %}Arquitectura macro-app{% endblock titulo %}
+
+{% block content %}
+  <div class="card-r">
+    <p class="card-titulo">De Operaciones a la Macro-App · cómo se agrupa todo</p>
+    <p class="small">
+      <em>Operaciones</em> es la primera de varias apps que Rehavid desarrollará para gobernar su
+      negocio. La <strong>macro-app</strong> es el contenedor ejecutivo que las une bajo un mismo
+      login, una misma base de usuarios y un mismo módulo de planes de acción. Cada app conserva su
+      lógica pero comparte la infraestructura: ciencia, datos y diseño del trabajo.
+    </p>
+    <p class="small">
+      Por diseño, todos los dashboards de cada app exponen sus KPIs y conclusiones a un
+      <span class="code">data contract</span> común. La macro-app consume ese contrato y arma una
+      vista consolidada para dirección.
+    </p>
+    <div class="row g-2 mt-2">
+      {% for label, valor in stack %}
+        <div class="col-md-6">
+          <div class="flex-between" style="padding:6px 0;border-bottom:1px solid var(--line-3)">
+            <span class="small muted">{{ label }}</span>
+            <strong class="small">{{ valor }}</strong>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="card-r mt-2">
+    <p class="card-titulo">Apps planificadas en el ecosistema Rehavid</p>
+    <p class="small">
+      Cada app se desarrolla con la misma plantilla: login Entra ID + módulo de planes de acción +
+      motor de recomendaciones + ficha de usuario. La macro-app consolida los dashboards en un solo
+      cockpit.
+    </p>
+    <div id="ch-macro-tree" style="height:320px"></div>
+  </div>
+
+  <div class="card-r mt-2">
+    <p class="card-titulo">Estructura del módulo común "Planes de acción"</p>
+    <p class="small">
+      Este módulo existe <strong>idéntico</strong> en Operaciones y se replicará en las demás apps.
+      La macro-app lo agrega:
+    </p>
+    <ul class="small muted" style="line-height:1.7;padding-left:20px;margin-top:8px">
+      <li>Plan tiene: <span class="code">id</span>, <span class="code">app_origen</span>,
+        <span class="code">titulo</span>, <span class="code">descripcion</span>,
+        <span class="code">responsable</span>, <span class="code">fecha_creacion</span>,
+        <span class="code">fecha_vencimiento</span>, <span class="code">avance</span>,
+        <span class="code">estado</span>, <span class="code">vinculo_recomendacion</span>,
+        <span class="code">resultado_cierre</span></li>
+      <li>Estados: <span class="code">borrador</span>, <span class="code">en_curso</span>,
+        <span class="code">en_riesgo</span>, <span class="code">cerrado_exitoso</span>,
+        <span class="code">cerrado_sin_efecto</span></li>
+      <li>Cada plan está vinculado a una <strong>recomendación del motor</strong> o a una
+        <strong>conclusión del dashboard</strong>, lo que permite cerrar el ciclo
+        "ver → decidir → ejecutar → medir"</li>
+      <li>Reporte automático semanal a líderes con planes en riesgo, vencimientos próximos y
+        cierres exitosos</li>
+    </ul>
+  </div>
+{% endblock content %}
+
+{% block inline_javascript %}
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+  <script>
+    window.addEventListener('DOMContentLoaded', () => {
+      const INK = '#1F1042', INK3 = '#5A4A95', LINE = '#E5DFF6', ACCENT = '#4025CE', WARN = '#B8770F';
+      const data = {
+        name: 'Macro-app Rehavid', itemStyle: { color: INK },
+        children: [
+          {
+            name: 'Rehavid · Operaciones', itemStyle: { color: ACCENT },
+            children: [
+              { name: 'Reservas · {{ conteos_operaciones.reservas }} activas', itemStyle: { color: '#6952DA' } },
+              { name: 'Predicción riesgo · {{ conteos_operaciones.predicciones }} calculadas', itemStyle: { color: '#6952DA' } },
+              { name: 'Planes de acción · {{ conteos_operaciones.planes }} registrados', itemStyle: { color: '#6952DA' } },
+            ],
+          },
+          {
+            name: 'App · Salud ocupacional (planeada, aún no existe)', itemStyle: { color: INK3 },
+            children: [
+              { name: 'Vigilancia · Cohortes', itemStyle: { color: '#8B7BC7' } },
+              { name: 'Tamizajes', itemStyle: { color: '#8B7BC7' } },
+            ],
+          },
+          {
+            name: 'App · Comercial (planeada, aún no existe)', itemStyle: { color: INK3 },
+            children: [
+              { name: 'Pipeline', itemStyle: { color: '#8B7BC7' } },
+              { name: 'Propuestas', itemStyle: { color: '#8B7BC7' } },
+            ],
+          },
+          {
+            name: 'Módulos comunes', itemStyle: { color: WARN },
+            children: [
+              { name: 'Identidad · Entra ID', itemStyle: { color: '#C49858' } },
+              { name: 'Planes de acción', itemStyle: { color: '#C49858' } },
+              { name: 'Auditoría', itemStyle: { color: '#C49858' } },
+              { name: 'Ficha usuario', itemStyle: { color: '#C49858' } },
+            ],
+          },
+        ],
+      };
+      echarts.init(document.getElementById('ch-macro-tree')).setOption({
+        textStyle: { fontFamily: 'Outfit, Arial, sans-serif', color: INK3 },
+        tooltip: { trigger: 'item', triggerOn: 'mousemove' },
+        series: [{
+          type: 'tree', data: [data], top: 20, left: '12%', bottom: 20, right: '20%',
+          orient: 'LR', expandAndCollapse: false, initialTreeDepth: -1,
+          symbol: 'rect', symbolSize: [8, 8],
+          label: {
+            position: 'right', verticalAlign: 'middle', align: 'left',
+            fontSize: 11, color: INK3, distance: 8,
+          },
+          leaves: { label: { position: 'right', color: INK3 } },
+          lineStyle: { color: LINE, width: 1.5, curveness: 0.5 },
+          itemStyle: { borderColor: 'transparent' },
+        }],
+      });
+    });
+  </script>
+{% endblock inline_javascript %}

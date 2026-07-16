@@ -4,10 +4,41 @@
 {% block miga %}Sistema · Administración{% endblock miga %}
 {% block titulo %}Usuarios{% endblock titulo %}
 {% block acciones %}
+  <a class="btn-r" href="{% url 'administracion:usuarios_export' %}">Exportar Excel</a>
   <a class="btn-r primario" href="{% url 'administracion:usuario_nuevo' %}">+ Nuevo usuario</a>
 {% endblock acciones %}
 
 {% block content %}
+  <div class="kpi-grid">
+    <div class="kpi accent">
+      <div class="tag">Usuarios activos</div>
+      <div class="value">{{ kpis.usuarios_activos }} <span class="unidad">/ {{ kpis.usuarios_total }}</span></div>
+      <div class="sub">total de cuentas</div>
+    </div>
+    <div class="kpi">
+      <div class="tag">Empresas</div>
+      <div class="value">{{ kpis.empresas }}</div>
+      <div class="sub">empresas distintas con acceso</div>
+    </div>
+    <div class="kpi good">
+      <div class="tag">Administradores</div>
+      <div class="value">{{ kpis.administradores }}</div>
+      <div class="sub">nivel 1 · Admin Global</div>
+    </div>
+    <div class="kpi">
+      <div class="tag">Acciones registradas</div>
+      <div class="value">{{ kpis.acciones_7_dias }}</div>
+      <div class="sub">últimos 7 días</div>
+    </div>
+  </div>
+
+  {{ usuarios_por_empresa|json_script:"usuarios-por-empresa-data" }}
+  {{ actividad_30_dias|json_script:"actividad-30-dias-data" }}
+  <div class="row g-3">
+    <div class="col-lg-5"><div class="card-r"><p class="card-titulo">Distribución por empresa</p><div id="ch-admin-empresa" style="height:260px"></div></div></div>
+    <div class="col-lg-7"><div class="card-r"><p class="card-titulo">Actividad agregada · últimos 30 días</p><div id="ch-admin-actividad" style="height:260px"></div></div></div>
+  </div>
+
   <form class="filtros form-r" method="get">
     <div class="campo grow">
       <label for="f-q">Buscar</label>
@@ -76,3 +107,45 @@
     </table>
   </div>
 {% endblock content %}
+
+{% block inline_javascript %}
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+  <script>
+    window.addEventListener('DOMContentLoaded', () => {
+      const BRAND = '#4025CE', INK3 = '#5A4A95', LINE = '#E5DFF6';
+      const paleta = [BRAND, '#00A055', '#B8770F', '#B23B5C', '#8B5CF6', '#6952DA'];
+      const base = { textStyle: { fontFamily: 'Outfit, Arial, sans-serif', color: INK3 } };
+
+      const porEmpresa = JSON.parse(document.getElementById('usuarios-por-empresa-data').textContent);
+      if (porEmpresa.empresas.length) {
+        echarts.init(document.getElementById('ch-admin-empresa')).setOption({
+          ...base,
+          tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
+          legend: { bottom: 0, textStyle: { color: INK3 } },
+          series: [{
+            type: 'pie', radius: ['50%', '78%'],
+            data: porEmpresa.empresas.map((e, i) => ({
+              name: e, value: porEmpresa.conteos[i],
+              itemStyle: { color: paleta[i % paleta.length], borderColor: '#fff', borderWidth: 2 },
+            })),
+            label: { color: INK3, formatter: '{b}: {c}' },
+          }],
+        });
+      }
+
+      const actividad = JSON.parse(document.getElementById('actividad-30-dias-data').textContent);
+      echarts.init(document.getElementById('ch-admin-actividad')).setOption({
+        ...base,
+        tooltip: { trigger: 'axis' },
+        legend: { bottom: 0, textStyle: { color: INK3 } },
+        xAxis: { type: 'category', data: actividad.dias, axisLabel: { color: INK3 } },
+        yAxis: { type: 'value', splitLine: { lineStyle: { color: LINE } }, axisLabel: { color: INK3 } },
+        series: [
+          { name: 'Logins', type: 'line', stack: 'tot', data: actividad.logins, areaStyle: {}, itemStyle: { color: BRAND } },
+          { name: 'Creaciones', type: 'line', stack: 'tot', data: actividad.creaciones, areaStyle: {}, itemStyle: { color: '#00A055' } },
+          { name: 'Exportes', type: 'line', stack: 'tot', data: actividad.exportes, areaStyle: {}, itemStyle: { color: '#B8770F' } },
+        ],
+      });
+    });
+  </script>
+{% endblock inline_javascript %}

@@ -4,6 +4,7 @@
 {% block miga %}Portal del solicitante{% endblock miga %}
 {% block titulo %}Mis solicitudes{% endblock titulo %}
 {% block acciones %}
+  <a class="btn-r" href="{% url 'portal:mis_solicitudes_export' %}">Exportar Excel</a>
   <a class="btn-r primario" href="{% url 'portal:solicitar' %}">+ Solicitar servicio</a>
 {% endblock acciones %}
 
@@ -43,7 +44,7 @@
             <td>{{ s.fecha_sugerida|date:"d M Y" }}</td>
             <td>{{ s.dias_estimados }}</td>
             <td>
-              <span class="chip {{ s.estado }}">{{ s.get_estado_display }}</span>
+              <span class="chip {{ s.estado_visual }}">{{ s.estado_visual_display }}</span>
               {% if s.estado == "cancelada" and s.motivo_cancelacion %}
                 <div class="small muted">{{ s.motivo_cancelacion|truncatechars:40 }}</div>
               {% endif %}

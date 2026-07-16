@@ -36,6 +36,13 @@
     </div>
   </div>
 
+  {{ stock_por_categoria|json_script:"stock-por-categoria-data" }}
+  {{ equipos_por_ciudad|json_script:"equipos-por-ciudad-data" }}
+  <div class="row g-3">
+    <div class="col-lg-6"><div class="card-r"><p class="card-titulo">Stock por categoría</p><div id="ch-eq-stock" style="height:260px"></div></div></div>
+    <div class="col-lg-6"><div class="card-r"><p class="card-titulo">Equipos por ciudad base</p><div id="ch-eq-ciudad" style="height:260px"></div></div></div>
+  </div>
+
   <form class="filtros form-r" method="get">
     <div class="campo grow">
       <label for="f-q">Buscar</label>
@@ -260,8 +267,42 @@
 {% endblock modal %}
 
 {% block inline_javascript %}
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
   <script>
     window.addEventListener('DOMContentLoaded', () => {
+      const BRAND = '#4025CE', INK3 = '#5A4A95', LINE = '#E5DFF6';
+      const base = { textStyle: { fontFamily: 'Outfit, Arial, sans-serif', color: INK3 } };
+
+      const stock = JSON.parse(document.getElementById('stock-por-categoria-data').textContent);
+      if (stock.categorias.length) {
+        echarts.init(document.getElementById('ch-eq-stock')).setOption({
+          ...base,
+          tooltip: { trigger: 'axis' },
+          legend: { bottom: 0, textStyle: { color: INK3 } },
+          xAxis: { type: 'category', data: stock.categorias, axisLabel: { color: INK3 } },
+          yAxis: { type: 'value', splitLine: { lineStyle: { color: LINE } }, axisLabel: { color: INK3 } },
+          series: [
+            { name: 'Total', type: 'bar', data: stock.total, itemStyle: { color: LINE } },
+            { name: 'Disponibles', type: 'bar', data: stock.disponibles, itemStyle: { color: BRAND } },
+          ],
+        });
+      }
+
+      const porCiudad = JSON.parse(document.getElementById('equipos-por-ciudad-data').textContent);
+      if (porCiudad.ciudades.length) {
+        echarts.init(document.getElementById('ch-eq-ciudad')).setOption({
+          ...base,
+          tooltip: { trigger: 'axis' },
+          xAxis: { type: 'value', splitLine: { lineStyle: { color: LINE } }, axisLabel: { color: INK3 } },
+          yAxis: { type: 'category', data: porCiudad.ciudades, axisLabel: { color: INK3 } },
+          series: [{
+            type: 'bar', data: porCiudad.conteos, barMaxWidth: 16,
+            itemStyle: { color: BRAND, borderRadius: [0, 4, 4, 0] },
+            label: { show: true, position: 'right', color: INK3 },
+          }],
+        });
+      }
+
       document.querySelectorAll('.js-accion').forEach((btn) => {
         btn.addEventListener('click', () => {
           const modal = document.querySelector(btn.dataset.modal);

@@ -66,6 +66,11 @@
     <div class="col-lg-8"><div class="card-r"><p class="card-titulo">Evolución semanal de salidas</p><div id="ch-evolucion" style="height:280px"></div></div></div>
     <div class="col-lg-4"><div class="card-r"><p class="card-titulo">Estado de la flota</p><div id="ch-equipos" style="height:280px"></div></div></div>
     <div class="col-lg-6"><div class="card-r"><p class="card-titulo">Top clientes por volumen</p><div id="ch-clientes" style="height:280px"></div></div></div>
+    <div class="col-lg-6"><div class="card-r"><p class="card-titulo">Distribución por servicio y mes</p><div id="ch-servicio-mes" style="height:280px"></div></div></div>
+    <div class="col-lg-6"><div class="card-r"><p class="card-titulo">Composición del portafolio · servicio × ciudad</p><div id="ch-treemap" style="height:320px"></div></div></div>
+    <div class="col-lg-12"><div class="card-r"><p class="card-titulo">Flujo servicio → ciudad → cliente</p><div id="ch-sankey" style="height:380px"></div></div></div>
+    <div class="col-lg-7"><div class="card-r"><p class="card-titulo">Perfil operativo por ciudad</p><div id="ch-perfil-ciudad" style="height:320px"></div></div></div>
+    <div class="col-lg-5"><div class="card-r"><p class="card-titulo">Eficiencia logística · días de retorno por servicio</p><div id="ch-eficiencia" style="height:320px"></div></div></div>
   </div>
 {% endblock content %}
 
@@ -135,8 +140,92 @@
         }],
       });
 
+      if (series.distribucion_servicio_mes && series.distribucion_servicio_mes.meses.length) {
+        const dsm = series.distribucion_servicio_mes;
+        const colores = [BRAND, '#00A055', '#B8770F', '#B23B5C', '#8B5CF6', '#6952DA'];
+        echarts.init(document.getElementById('ch-servicio-mes')).setOption({
+          ...base,
+          tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+          legend: { bottom: 0, textStyle: { color: INK3 } },
+          xAxis: ejeValor,
+          yAxis: ejeCat(dsm.meses),
+          series: dsm.series.map((s, i) => ({
+            name: s.servicio, type: 'bar', stack: 'total', data: s.data,
+            itemStyle: { color: colores[i % colores.length] },
+            label: { show: true, color: '#fff', formatter: (p) => (p.value > 0 ? p.value : '') },
+          })),
+        });
+      }
+
+      if (series.treemap && series.treemap.length) {
+        echarts.init(document.getElementById('ch-treemap')).setOption({
+          ...base,
+          tooltip: { trigger: 'item', formatter: '{b}: {c}' },
+          series: [{
+            type: 'treemap', roam: false, breadcrumb: { show: false },
+            label: { color: '#fff', fontFamily: 'Outfit, Arial, sans-serif' },
+            upperLabel: { show: true, height: 22, color: '#fff' },
+            data: series.treemap,
+            levels: [{ itemStyle: { borderColor: '#fff', borderWidth: 2, gapWidth: 2 } }],
+            color: [BRAND, BRAND_LIGHT, '#8B5CF6', '#B23B5C', '#00A055', '#B8770F'],
+          }],
+        });
+      }
+
+      if (series.sankey && series.sankey.nodes.length) {
+        echarts.init(document.getElementById('ch-sankey')).setOption({
+          ...base,
+          tooltip: { trigger: 'item' },
+          series: [{
+            type: 'sankey', layoutIterations: 64, nodeAlign: 'left',
+            data: series.sankey.nodes, links: series.sankey.links,
+            label: { color: INK3, fontFamily: 'Outfit, Arial, sans-serif' },
+            lineStyle: { color: 'gradient', opacity: 0.3 },
+            itemStyle: { color: BRAND, borderColor: LINE },
+          }],
+        });
+      }
+
+      if (series.perfil_ciudades && series.perfil_ciudades.ciudades.length) {
+        const perfil = series.perfil_ciudades;
+        const colores = [BRAND, BRAND_LIGHT, '#00A055'];
+        echarts.init(document.getElementById('ch-perfil-ciudad')).setOption({
+          ...base,
+          tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+          legend: { bottom: 0, textStyle: { color: INK3 } },
+          xAxis: { type: 'value', max: 100, axisLabel: { color: INK3, formatter: '{value}%' } },
+          yAxis: ejeCat(perfil.dimensiones),
+          series: perfil.series.map((s, i) => ({
+            name: s.name, type: 'bar', data: s.data,
+            itemStyle: { color: colores[i % colores.length] },
+          })),
+        });
+      }
+
+      if (series.eficiencia_logistica && series.eficiencia_logistica.servicios.length) {
+        const ef = series.eficiencia_logistica;
+        echarts.init(document.getElementById('ch-eficiencia')).setOption({
+          ...base,
+          tooltip: { trigger: 'axis' },
+          xAxis: ejeValor,
+          yAxis: ejeCat(ef.servicios),
+          series: [
+            {
+              name: 'Meta', type: 'bar', data: ef.servicios.map(() => ef.meta),
+              barWidth: 22, itemStyle: { color: LINE }, z: 1,
+            },
+            {
+              name: 'Real', type: 'bar', data: ef.real, barWidth: 10, z: 2,
+              itemStyle: { color: BRAND },
+              label: { show: true, position: 'right', color: INK3, formatter: '{c} d' },
+            },
+          ],
+        });
+      }
+
       window.addEventListener('resize', () => {
-        ['ch-servicio', 'ch-ciudad', 'ch-clientes', 'ch-evolucion', 'ch-equipos'].forEach((id) => {
+        ['ch-servicio', 'ch-ciudad', 'ch-clientes', 'ch-evolucion', 'ch-equipos',
+          'ch-servicio-mes', 'ch-treemap', 'ch-sankey', 'ch-perfil-ciudad', 'ch-eficiencia'].forEach((id) => {
           const el = document.getElementById(id);
           if (el) echarts.getInstanceByDom(el)?.resize();
         });

@@ -23,7 +23,7 @@ class ItemMenu:
 
 # modulo → (etiqueta, url_name, sección del sidebar)
 MODULOS: dict[str, tuple[str, str, str]] = {
-    "brief": ("Brief ejecutivo", "analitica:brief", "Dirección"),
+    "brief": ("Resumen ejecutivo", "analitica:brief", "Dirección"),
     "dashboard": ("Dashboard", "analitica:dashboard", "Dirección"),
     "predictivo": ("Predictivo MSK", "predictivo:index", "Dirección"),
     "recos": ("Recomendaciones", "analitica:recos", "Dirección"),
@@ -36,6 +36,7 @@ MODULOS: dict[str, tuple[str, str, str]] = {
     "alertas": ("Alertas logísticas", "alertas:index", "Operación"),
     "admin": ("Administración", "administracion:usuarios", "Sistema"),
     "auditoria": ("Auditoría", "auditoria:lista", "Sistema"),
+    "arquitectura": ("Arquitectura macro-app", "administracion:arquitectura", "Sistema"),
     "portal": ("Inicio", "portal:inicio", "Portal"),
     "equipos-disp": ("Equipos disponibles", "portal:equipos", "Portal"),
     "solicitar": ("Solicitar servicio", "portal:solicitar", "Portal"),

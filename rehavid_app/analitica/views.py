@@ -2,6 +2,7 @@
 motor de recomendaciones (todo calculado de la BD — B15)."""
 
 import calendar
+import json
 from datetime import date
 from datetime import timedelta
 
@@ -43,7 +44,8 @@ def _filtros_analitica(request) -> dict:
 
 
 class BriefView(ModuloRequeridoMixin, TemplateView):
-    """Brief ejecutivo: KPIs de BD + top findings + próximas salidas."""
+    """Resumen ejecutivo: pirámide Minto (mensaje principal + soporte + síntesis,
+    derivados de los hallazgos reales del motor) + KPIs de BD + próximas salidas."""
 
     modulo = "brief"
     template_name = "analitica/brief.html"
@@ -55,6 +57,10 @@ class BriefView(ModuloRequeridoMixin, TemplateView):
         ctx.update(
             modulo_activo="brief",
             kpis=services.kpis(),
+            kpis_base=services.kpis_base_ejecutivo(),
+            salud_backlog=services.salud_backlog(),
+            treemap_json=json.dumps(services.treemap_servicio_ciudad()),
+            resumen=services.resumen_ejecutivo(findings),
             findings=findings[:5],
             findings_total=len(findings),
             proximas_salidas=(
@@ -103,12 +109,21 @@ class RecosView(ModuloRequeridoMixin, TemplateView):
         ctx = super().get_context_data(**kwargs)
         findings = services.analizar()
         areas = sorted({f.area for f in findings})
+        resumen = services.resumen_recomendaciones(findings)
+        severidad = self.request.GET.get("severidad")
+        if severidad == "criticos":
+            findings = [f for f in findings if f.severidad >= 4]  # noqa: PLR2004
+        elif severidad == "importantes":
+            findings = [f for f in findings if f.severidad == 3]  # noqa: PLR2004
+        elif severidad == "atencion":
+            findings = [f for f in findings if f.severidad <= 2]  # noqa: PLR2004
         if area := self.request.GET.get("area"):
             findings = [f for f in findings if f.area == area]
         ctx.update(
             modulo_activo="recos",
             findings=findings,
             areas=areas,
+            resumen=resumen,
             filtros=self.request.GET,
         )
         return ctx

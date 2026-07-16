@@ -109,11 +109,138 @@
       </div>
     </div>
   </div>
+
+  <div class="row g-3 mt-1">
+    <div class="col-lg-4">
+      <div class="card-r">
+        <p class="card-titulo">Distribución del riesgo</p>
+        {% if distribucion_riesgo.con_datos %}
+          <div id="ch-distribucion" style="height:260px"></div>
+        {% else %}
+          <div class="vacio-estado">
+            <div class="titulo">Sin evaluaciones aún</div>
+            Se llena a medida que se calculan predicciones.
+          </div>
+        {% endif %}
+      </div>
+    </div>
+    <div class="col-lg-8">
+      <div class="card-r">
+        <p class="card-titulo">Trayectoria de riesgo por cliente · últimas {{ trayectoria.ejes|length }} evaluaciones</p>
+        {% if trayectoria.clientes %}
+          <div id="ch-trayectoria" style="height:260px"></div>
+        {% else %}
+          <div class="vacio-estado">
+            <div class="titulo">Sin historial por cliente</div>
+            Aparece cuando un mismo cliente acumule más de una evaluación.
+          </div>
+        {% endif %}
+      </div>
+    </div>
+    <div class="col-lg-6">
+      <div class="card-r">
+        <p class="card-titulo">Diagrama corporal · score promedio de riesgo</p>
+        {% if diagrama_corporal.con_datos %}
+          <div id="ch-diagrama-corporal" style="height:260px"></div>
+        {% else %}
+          <div class="vacio-estado">
+            <div class="titulo">Sin datos por zona todavía</div>
+            Cada predicción calculada aporta un score simulado por zona anatómica;
+            este panel promedia lo acumulado.
+          </div>
+        {% endif %}
+      </div>
+    </div>
+    <div class="col-lg-6">
+      <div class="card-r">
+        <p class="card-titulo">Top 5 zonas con mayor exposición acumulada</p>
+        {% if diagrama_corporal.con_datos %}
+          <div id="ch-top-zonas" style="height:260px"></div>
+        {% else %}
+          <p class="muted small">Sin datos suficientes todavía.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
 {% endblock content %}
 
 {% block inline_javascript %}
-  {% if resultado %}
+  {% if resultado or distribucion_riesgo.con_datos or trayectoria.clientes or diagrama_corporal.con_datos %}
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+    <script>
+      window.addEventListener('DOMContentLoaded', () => {
+        const BRAND = '#4025CE', INK3 = '#5A4A95', LINE = '#E5DFF6';
+        const base = { textStyle: { fontFamily: 'Outfit, Arial, sans-serif', color: INK3 } };
+
+        {% if distribucion_riesgo.con_datos %}
+          const dist = {{ distribucion_riesgo_json|safe }};
+          echarts.init(document.getElementById('ch-distribucion')).setOption({
+            ...base,
+            tooltip: { trigger: 'axis' },
+            xAxis: { type: 'category', data: dist.etiquetas, axisLabel: { color: INK3 } },
+            yAxis: { type: 'value', splitLine: { lineStyle: { color: LINE } }, axisLabel: { color: INK3 } },
+            series: [{ type: 'bar', data: dist.conteos, itemStyle: { color: BRAND, borderRadius: [4, 4, 0, 0] } }],
+          });
+        {% endif %}
+
+        {% if trayectoria.clientes %}
+          const tra = {{ trayectoria_json|safe }};
+          const paleta = [BRAND, '#00A055', '#B8770F', '#B23B5C', '#8B5CF6'];
+          echarts.init(document.getElementById('ch-trayectoria')).setOption({
+            ...base,
+            tooltip: { trigger: 'axis' },
+            legend: { bottom: 0, textStyle: { color: INK3 } },
+            xAxis: { type: 'category', data: tra.ejes, axisLabel: { color: INK3 } },
+            yAxis: { type: 'value', min: 0, max: 1, axisLabel: { color: INK3, formatter: (v) => Math.round(v * 100) + '%' } },
+            series: [
+              {
+                name: 'Banda P25-P75', type: 'line', data: tra.banda_superior, lineStyle: { opacity: 0 },
+                areaStyle: { color: 'rgba(64,37,206,0.08)' }, stack: 'banda', symbol: 'none', z: 1,
+              },
+              {
+                name: 'Banda P25-P75', type: 'line', data: tra.banda_inferior.map((v) => v === null ? null : -v),
+                lineStyle: { opacity: 0 }, stack: 'banda', symbol: 'none', z: 1, silent: true,
+              },
+              ...tra.clientes.map((c, i) => ({
+                name: c.nombre, type: 'line', data: c.scores, symbolSize: 6,
+                lineStyle: { color: paleta[i % paleta.length], width: 2 },
+                itemStyle: { color: paleta[i % paleta.length] }, z: 2,
+              })),
+            ],
+          });
+        {% endif %}
+
+        {% if diagrama_corporal.con_datos %}
+          const diag = {{ diagrama_corporal_json|safe }};
+          echarts.init(document.getElementById('ch-diagrama-corporal')).setOption({
+            ...base,
+            tooltip: { trigger: 'item', formatter: '{b}: {c}' },
+            radar: {
+              indicator: diag.zonas.map((z) => ({ name: z.nombre, max: 100 })),
+              axisName: { color: INK3, fontSize: 10 },
+              splitLine: { lineStyle: { color: LINE } },
+            },
+            series: [{
+              type: 'radar', data: [{ value: diag.zonas.map((z) => z.score), areaStyle: { color: 'rgba(64,37,206,0.15)' } }],
+              lineStyle: { color: BRAND }, itemStyle: { color: BRAND },
+            }],
+          });
+          echarts.init(document.getElementById('ch-top-zonas')).setOption({
+            ...base,
+            tooltip: { trigger: 'axis' },
+            xAxis: { type: 'value', max: 100, axisLabel: { color: INK3 } },
+            yAxis: { type: 'category', data: diag.top5.slice().reverse().map((z) => z.nombre), axisLabel: { color: INK3 } },
+            series: [{
+              type: 'bar', data: diag.top5.slice().reverse().map((z) => z.score), barMaxWidth: 16,
+              itemStyle: { color: BRAND, borderRadius: [0, 4, 4, 0] },
+              label: { show: true, position: 'right', color: INK3 },
+            }],
+          });
+        {% endif %}
+      });
+    </script>
+  {% endif %}
+  {% if resultado %}
     <script>
       window.addEventListener('DOMContentLoaded', () => {
         const R = {{ resultado_json|safe }};

@@ -275,3 +275,6 @@ rehavid_app/media/
 .envs/*
 !.envs/.local/
 !.envs/.production_example/
+
+# Playwright MCP artifacts
+.playwright-mcp/

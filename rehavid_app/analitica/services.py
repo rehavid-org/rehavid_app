@@ -122,7 +122,131 @@ def series_dashboard(desde=None, hasta=None, servicio=None, ciudad=None) -> dict
         "por_cliente": por_cliente,
         "evolucion_semanal": evolucion,
         "estados_equipo": estados_equipo,
+        "distribucion_servicio_mes": distribucion_servicio_mes(desde, hasta, servicio, ciudad),
+        "treemap": treemap_servicio_ciudad(desde, hasta, servicio, ciudad),
+        "sankey": sankey_servicio_ciudad_cliente(desde, hasta, servicio, ciudad),
+        "perfil_ciudades": perfil_ciudades(desde, hasta, servicio, ciudad),
+        "eficiencia_logistica": eficiencia_logistica(),
     }
+
+
+PERFIL_CIUDADES_TOPE = 3  # top-N ciudades comparadas en el chart de perfil
+EFICIENCIA_META_DIAS = 3  # meta de negocio: días de retorno esperados por servicio
+DISTRIBUCION_MESES_TOPE = 6  # últimos N meses con datos, en vez de fijar 3 meses de calendario
+
+MESES_ES = [
+    "ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic",
+]
+
+
+def distribucion_servicio_mes(desde=None, hasta=None, servicio=None, ciudad=None) -> dict:
+    """Reservas por servicio x mes (stacked). A diferencia del prototipo origen
+    (3 meses y 3 servicios fijos), usa los meses y servicios reales presentes en
+    los datos, hasta los últimos DISTRIBUCION_MESES_TOPE con actividad."""
+    activas = _rango_reservas(desde, hasta, servicio, ciudad).filter(cancelada=False)
+    conteo: Counter = Counter()
+    for fecha_salida, nombre_servicio in activas.values_list("fecha_salida", "servicio__nombre"):
+        conteo[(fecha_salida.replace(day=1), nombre_servicio)] += 1
+    meses = sorted({mes for mes, _ in conteo})[-DISTRIBUCION_MESES_TOPE:]
+    servicios = sorted({s for _, s in conteo})
+    return {
+        "meses": [f"{MESES_ES[m.month - 1]} {m.year}" for m in meses],
+        "series": [
+            {"servicio": s, "data": [conteo[(m, s)] for m in meses]}
+            for s in servicios
+        ],
+    }
+
+
+def treemap_servicio_ciudad(desde=None, hasta=None, servicio=None, ciudad=None) -> list[dict]:
+    """Treemap servicio→ciudad · valor = personas evaluadas (B15, sin datos quemados)."""
+    activas = _rango_reservas(desde, hasta, servicio, ciudad).filter(cancelada=False)
+    grupos = (
+        activas.values("servicio__nombre", "ciudad__nombre")
+        .annotate(valor=Sum("personas"))
+        .order_by("servicio__nombre", "-valor")
+    )
+    por_servicio: dict[str, list[dict]] = {}
+    for g in grupos:
+        hijos = por_servicio.setdefault(g["servicio__nombre"], [])
+        hijos.append({"name": g["ciudad__nombre"], "value": g["valor"]})
+    return [{"name": nombre, "children": hijos} for nombre, hijos in por_servicio.items()]
+
+
+def sankey_servicio_ciudad_cliente(desde=None, hasta=None, servicio=None, ciudad=None) -> dict:
+    """Sankey servicio→ciudad→cliente · valor = personas evaluadas."""
+    activas = _rango_reservas(desde, hasta, servicio, ciudad).filter(cancelada=False)
+    nodos: set[str] = set()
+    servicio_ciudad: Counter = Counter()
+    ciudad_cliente: Counter = Counter()
+    for r in activas.select_related("servicio", "ciudad", "cliente"):
+        nodos.update([r.servicio.nombre, r.ciudad.nombre, r.cliente.nombre])
+        servicio_ciudad[(r.servicio.nombre, r.ciudad.nombre)] += r.personas
+        ciudad_cliente[(r.ciudad.nombre, r.cliente.nombre)] += r.personas
+    links = [{"source": s, "target": t, "value": v} for (s, t), v in servicio_ciudad.items()]
+    links += [{"source": s, "target": t, "value": v} for (s, t), v in ciudad_cliente.items()]
+    return {"nodes": [{"name": n} for n in nodos], "links": links}
+
+
+def perfil_ciudades(desde=None, hasta=None, servicio=None, ciudad=None) -> dict:
+    """Perfil operativo por ciudad · 5 dimensiones normalizadas a % del máximo
+    entre las top-N ciudades por volumen (barras agrupadas — no es un radar,
+    el propio prototipo origen ya documentaba ese cambio de diseño)."""
+    activas = _rango_reservas(desde, hasta, servicio, ciudad).filter(cancelada=False)
+    top_ciudades = [
+        c["ciudad__nombre"]
+        for c in activas.values("ciudad__nombre").annotate(n=Count("id")).order_by("-n")[:PERFIL_CIUDADES_TOPE]
+    ]
+    dims = ["reservas", "personas", "contactos", "riesgo_medio", "clientes_unicos"]
+    datos: dict[str, dict] = {}
+    for c in top_ciudades:
+        qs = activas.filter(ciudad__nombre=c)
+        n_reservas = qs.count()
+        datos[c] = {
+            "reservas": n_reservas,
+            "personas": qs.aggregate(s=Sum("personas"))["s"] or 0,
+            "contactos": qs.aggregate(s=Sum("contactos_efectivos"))["s"] or 0,
+            "riesgo_medio": round((qs.aggregate(s=Sum("riesgo"))["s"] or 0) / n_reservas, 2) if n_reservas else 0,
+            "clientes_unicos": qs.values("cliente").distinct().count(),
+        }
+    maximos = {d: max((datos[c][d] for c in top_ciudades), default=0) for d in dims}
+    series = [
+        {
+            "name": c,
+            "data": [round(100 * datos[c][d] / maximos[d]) if maximos[d] else 0 for d in dims],
+        }
+        for c in top_ciudades
+    ]
+    return {"dimensiones": dims, "ciudades": top_ciudades, "series": series}
+
+
+def eficiencia_logistica() -> dict:
+    """Días reales de retorno por servicio (confirmacion_retorno.fecha - fecha_salida),
+    contra la meta de negocio (EFICIENCIA_META_DIAS). Reemplaza al bullet chart del
+    prototipo origen, que eran valores fijos sin cálculo real."""
+    dias_por_servicio: dict[str, list[int]] = {}
+    qs = Reserva.objects.filter(confirmacion_retorno__isnull=False).select_related(
+        "servicio", "confirmacion_retorno",
+    )
+    for r in qs:
+        dias = (r.confirmacion_retorno.fecha - r.fecha_salida).days
+        dias_por_servicio.setdefault(r.servicio.nombre, []).append(dias)
+    servicios = sorted(dias_por_servicio)
+    return {
+        "servicios": servicios,
+        "real": [round(sum(dias_por_servicio[s]) / len(dias_por_servicio[s]), 1) for s in servicios],
+        "meta": EFICIENCIA_META_DIAS,
+    }
+
+
+def salud_backlog() -> int:
+    """% de reservas activas con riesgo bajo (< 0.5) · gauge del Brief ejecutivo."""
+    activas = Reserva.objects.filter(cancelada=False)
+    total = activas.count()
+    if not total:
+        return 100
+    en_riesgo = activas.filter(riesgo__gte=0.5).count()
+    return round((1 - en_riesgo / total) * 100)
 
 
 # ────────────────────────────────────────────────────────────
@@ -539,6 +663,102 @@ def analizar() -> list[Finding]:
             logger.exception("Detector %s falló", detector.__name__)
     findings.sort(key=lambda f: f.severidad, reverse=True)
     return findings
+
+
+def kpis_base_ejecutivo() -> dict:
+    """Fila "Base" del resumen ejecutivo: reservas activas y contactos efectivos
+    de esta semana vs la anterior, reservas en riesgo, utilización de flota.
+    En el prototipo origen esta fila era texto fijo (28+4, $741K "facturación
+    proyectada" sin ninguna fórmula) — acá todo sale de la BD; se sustituyó la
+    "facturación proyectada" (sin ningún dato de precio en el modelo) por
+    utilización de flota, que sí es real."""
+    hoy = timezone.localdate()
+    inicio_semana = hoy - timedelta(days=hoy.weekday())
+    inicio_semana_pasada = inicio_semana - timedelta(days=7)
+    activas = Reserva.objects.filter(cancelada=False)
+
+    def _en_rango(desde, hasta=None):
+        qs = activas.filter(fecha_salida__gte=desde)
+        return qs.filter(fecha_salida__lt=hasta) if hasta else qs
+
+    reservas_semana = _en_rango(inicio_semana).count()
+    reservas_semana_pasada = _en_rango(inicio_semana_pasada, inicio_semana).count()
+    contactos_semana = _en_rango(inicio_semana).aggregate(s=Sum("contactos_efectivos"))["s"] or 0
+    contactos_semana_pasada = (
+        _en_rango(inicio_semana_pasada, inicio_semana).aggregate(s=Sum("contactos_efectivos"))["s"] or 0
+    )
+    en_riesgo = activas.filter(confirmacion_retorno__isnull=True, riesgo__gte=0.55).count()
+
+    inventario = Equipo.objects.exclude(estado=EstadoEquipo.DE_BAJA)
+    total_equipos = inventario.count()
+    en_uso = inventario.filter(estado=EstadoEquipo.EN_USO).count()
+
+    return {
+        "reservas_semana": reservas_semana,
+        "reservas_semana_delta": reservas_semana - reservas_semana_pasada,
+        "contactos_semana": contactos_semana,
+        "contactos_semana_delta": contactos_semana - contactos_semana_pasada,
+        "reservas_en_riesgo": en_riesgo,
+        "utilizacion_flota": round(100 * en_uso / total_equipos) if total_equipos else 0,
+    }
+
+
+def resumen_ejecutivo(findings: list[Finding] | None = None) -> dict:
+    """Cima de la pirámide Minto (mensaje principal + 3 puntos de soporte +
+    síntesis) construida a partir de los hallazgos REALES del motor. En el
+    prototipo origen todo este bloque era texto fijo en el HTML, sin ninguna
+    función que lo generara — acá se deriva de ``analizar()`` para que cambie
+    con los datos reales."""
+    if findings is None:
+        findings = analizar()
+    hoy = timezone.localdate()
+    activas = Reserva.objects.filter(cancelada=False)
+    cobertura = {
+        "reservas": activas.count(),
+        "clientes": activas.values("cliente").distinct().count(),
+        "ciudades": activas.values("ciudad").distinct().count(),
+    }
+    principal = findings[0] if findings else None
+    soporte = findings[1:4]
+    confianza = "Alta" if len(findings) >= 3 else "Media" if findings else "Sin datos suficientes"  # noqa: PLR2004
+    return {
+        "actualizado": timezone.localtime(),
+        "cobertura": cobertura,
+        "confianza": confianza,
+        "principal": principal,
+        "soporte": soporte,
+        "sintesis": [f for f in [principal, *soporte] if f][:3],
+        "hoy": hoy,
+    }
+
+
+def resumen_recomendaciones(findings: list[Finding]) -> dict:
+    """"Lectura ejecutiva del motor" + conteos por severidad para los filtros.
+    En el prototipo origen los conteos de los botones eran texto fijo (nunca
+    igual al array real de hallazgos) y el resumen citaba cifras hardcodeadas;
+    acá todo sale de ``findings`` ya calculado por ``analizar()``."""
+    criticos = [f for f in findings if f.severidad >= 4]  # noqa: PLR2004
+    importantes = [f for f in findings if f.severidad == 3]  # noqa: PLR2004
+    atencion = [f for f in findings if f.severidad <= 2]  # noqa: PLR2004
+    partes = []
+    if criticos:
+        partes.append(f"{len(criticos)} hallazgo{_plural(len(criticos))} crítico{_plural(len(criticos))}")
+    if importantes:
+        partes.append(f"{len(importantes)} importante{_plural(len(importantes))}")
+    if atencion:
+        partes.append(f"{len(atencion)} de atención")
+    if not findings:
+        texto = "La operación está dentro de los umbrales configurados: los 11 detectores corrieron sin hallazgos."
+    else:
+        top = findings[0].titulo
+        texto = f'El motor identificó {", ".join(partes)}. El hallazgo de mayor prioridad es: "{top}".'
+    return {
+        "criticos": len(criticos),
+        "importantes": len(importantes),
+        "atencion": len(atencion),
+        "texto": texto,
+        "actualizado": timezone.localtime(),
+    }
 
 
 def crear_plan_desde_finding(finding_id: str, usuario) -> Plan:

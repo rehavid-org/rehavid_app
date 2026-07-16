@@ -32,6 +32,33 @@
   </div>
 
   <div class="row g-3">
+    <div class="col-lg-4">
+      <div class="card-r" style="height:100%">
+        <div class="small muted">01 · Consultar</div>
+        <p style="font-weight:600;margin:4px 0">Equipos disponibles</p>
+        <p class="small muted">Revisa qué equipos están libres y dónde están.</p>
+        <a class="btn-r mini" href="{% url 'portal:equipos' %}">Ver equipos →</a>
+      </div>
+    </div>
+    <div class="col-lg-4">
+      <div class="card-r" style="height:100%">
+        <div class="small muted">02 · Solicitar</div>
+        <p style="font-weight:600;margin:4px 0">Nueva medición</p>
+        <p class="small muted">Diligencia fecha, ciudad, servicio y personas a evaluar.</p>
+        <a class="btn-r mini primario" href="{% url 'portal:solicitar' %}">Solicitar medición →</a>
+      </div>
+    </div>
+    <div class="col-lg-4">
+      <div class="card-r" style="height:100%">
+        <div class="small muted">03 · Seguir</div>
+        <p style="font-weight:600;margin:4px 0">Mis solicitudes</p>
+        <p class="small muted">Estado, fecha confirmada y resultados de tus solicitudes.</p>
+        <a class="btn-r mini" href="{% url 'portal:mis_solicitudes' %}">Ver mis solicitudes →</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3">
     <div class="col-lg-6">
       <div class="card-r">
         <p class="card-titulo">Próximos servicios confirmados</p>
@@ -60,7 +87,7 @@
               <span class="code">{{ s.codigo }}</span> · {{ s.servicio.nombre }}
               <div class="small muted">{{ s.creada_en|date:"d M Y" }}</div>
             </div>
-            <span class="chip {{ s.estado }}">{{ s.get_estado_display }}</span>
+            <span class="chip {{ s.estado_visual }}">{{ s.estado_visual_display }}</span>
           </div>
         {% empty %}
           <p class="muted small">Aún no ha creado solicitudes.</p>

@@ -22,6 +22,7 @@ class PrediccionRegistro(models.Model):
     modelo_version = models.CharField(max_length=40)
     es_simulacion = models.BooleanField(default=True)
     factores = models.JSONField(default=list, blank=True)
+    zonas = models.JSONField(default=dict, blank=True)
     creado_en = models.DateTimeField(auto_now_add=True)
 
     class Meta:

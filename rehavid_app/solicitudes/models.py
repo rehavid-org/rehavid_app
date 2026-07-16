@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.db import models
+from django.utils import timezone
 
 from rehavid_app.catalogo.models import Ciudad
 from rehavid_app.catalogo.models import Empresa
@@ -108,6 +109,27 @@ class Solicitud(models.Model):
         if creating and not self.codigo:
             self.codigo = f"SOL-{self.pk:03d}"
             super().save(update_fields=["codigo"])
+
+    def estado_visual(self) -> str:
+        """Matiz de presentación: una solicitud confirmada cuya reserva vinculada
+        está en su ventana de ejecución se muestra como "en_curso". No es un
+        estado persistido — la máquina de estados real sigue siendo la de
+        ``EstadoSolicitud`` (B2/B5); esto solo mejora lo que ve el usuario."""
+        if self.estado == EstadoSolicitud.CONFIRMADA:
+            hoy = timezone.localdate()
+            reserva = self.reservas.filter(cancelada=False).first()
+            if (
+                reserva is not None
+                and reserva.fecha_salida <= hoy <= reserva.fecha_retorno_esp
+                and not hasattr(reserva, "confirmacion_retorno")
+            ):
+                return "en_curso"
+        return self.estado
+
+    def estado_visual_display(self) -> str:
+        if self.estado_visual() == "en_curso":
+            return "En curso"
+        return self.get_estado_display()
 
 
 class AccesorioSolicitado(models.Model):

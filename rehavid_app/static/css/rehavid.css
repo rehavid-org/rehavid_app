@@ -281,6 +281,7 @@ table.tabla-r { width: 100%; border-collapse: collapse; font-size: 12.5px; }
 .chip.en_transito { color: var(--brand-light); background: #f0ebfd; }
 .chip.de_baja { color: var(--ink-4); background: var(--paper-3); }
 .chip.confirmada, .chip.ok { color: #008c50; background: var(--accent-green-soft); }
+.chip.en_curso { color: #008c50; background: var(--accent-green-soft); }
 .chip.pendiente { color: var(--warn); background: var(--warn-bg); }
 .chip.cancelada { color: var(--bad); background: var(--bad-bg); }
 .chip.finalizada, .chip.neutra { color: var(--ink-3); background: var(--paper-3); }

@@ -7,6 +7,4 @@ class UsersConfig(AppConfig):
     verbose_name = _("Users")
 
     def ready(self):
-        """
-        Override this method in subclasses to run code when Django starts.
-        """
+        from rehavid_app.users import signals  # noqa: F401,PLC0415

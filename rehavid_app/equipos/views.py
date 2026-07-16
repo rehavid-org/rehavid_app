@@ -1,6 +1,8 @@
 """Vistas del inventario de equipos (Fase 4). Mutaciones vía
 ``reservas/services.py`` (listo/mantenimiento/baja) y auditoría."""
 
+from collections import Counter
+
 from django.contrib import messages
 from django.shortcuts import get_object_or_404
 from django.shortcuts import redirect
@@ -62,8 +64,31 @@ class EquipoListView(NivelRequeridoMixin, ListView):
             listo_form=ListoForm(),
             mantenimiento_form=MantenimientoForm(),
             baja_form=BajaForm(),
+            stock_por_categoria=self._stock_por_categoria(inventario),
+            equipos_por_ciudad=self._equipos_por_ciudad(inventario),
         )
         return ctx
+
+    @staticmethod
+    def _stock_por_categoria(inventario):
+        por_categoria: dict[str, dict[str, int]] = {}
+        for e in inventario.select_related("servicio"):
+            fila = por_categoria.setdefault(e.servicio.nombre, {"total": 0, "disponibles": 0})
+            fila["total"] += 1
+            if e.estado == EstadoEquipo.DISPONIBLE:
+                fila["disponibles"] += 1
+        categorias = sorted(por_categoria)
+        return {
+            "categorias": categorias,
+            "total": [por_categoria[c]["total"] for c in categorias],
+            "disponibles": [por_categoria[c]["disponibles"] for c in categorias],
+        }
+
+    @staticmethod
+    def _equipos_por_ciudad(inventario):
+        conteo = Counter(inventario.values_list("ciudad_base__nombre", flat=True))
+        ciudades = sorted(conteo, key=lambda c: conteo[c])
+        return {"ciudades": ciudades, "conteos": [conteo[c] for c in ciudades]}
 
 
 class EquipoCreateView(NivelRequeridoMixin, CreateView):

@@ -32,10 +32,26 @@ jobs:
       # Consider using pre-commit.ci for open source project
       - name: Run pre-commit
         uses: pre-commit/action@v3.0.1
+        with:
+          extra_args: ruff --all-files
+        continue-on-error: true # formatters don't block CI; ruff is the gate via `ruff check`
 
   # With no caching at all the entire ci process takes 3m to complete!
   pytest:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: rehavid
+          POSTGRES_PASSWORD: rehavid
+          POSTGRES_DB: rehavid_app
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready --health-interval 5s
+          --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgres://rehavid:rehavid@localhost:5432/rehavid_app
 
     steps:
       - name: Checkout Code Repository

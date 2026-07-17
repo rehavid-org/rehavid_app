@@ -77,11 +77,17 @@ jobs:
         run: sudo apt-get update -qq && sudo apt-get install -y -qq openssh-client rsync
 
       - name: Configure SSH key
+        env:
+          VM_SSH_KEY: ${{ secrets.VM_SSH_KEY }}
+          VM_HOST: ${{ secrets.VM_HOST }}
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.VM_SSH_KEY }}" > ~/.ssh/vm_key
+          # printf evita que un trailing newline o escape corrompan la key
+          printf '%s\n' "$VM_SSH_KEY" > ~/.ssh/vm_key
           chmod 600 ~/.ssh/vm_key
-          ssh-keyscan -H "${{ secrets.VM_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+          # ssh-keyscan best-effort: StrictHostKeyChecking=accept-new en el
+          # ssh real se encarga de agregar el host al known_hosts si faltara.
+          ssh-keyscan -H "$VM_HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
 
       # -------------------------------------------------------------------
       # rsync exclude notes:
@@ -96,6 +102,10 @@ jobs:
       #     deploy-vm.sh doesn't use git.
       # -------------------------------------------------------------------
       - name: Rsync code to VM
+        env:
+          VM_USER: ${{ secrets.VM_USER }}
+          VM_HOST: ${{ secrets.VM_HOST }}
+          VM_DIR: /opt/rehavid/app
         run: |
           rsync -avz --delete-after \
             --exclude='.git/' \
@@ -110,24 +120,34 @@ jobs:
             --filter='protect .envs/.production/' \
             -e "ssh -i ~/.ssh/vm_key -o StrictHostKeyChecking=accept-new" \
             ./ \
-            "${{ secrets.VM_USER }}@${{ secrets.VM_HOST }}:${{ env.VM_DIR }}/"
+            "${VM_USER}@${VM_HOST}:${VM_DIR}/"
 
       - name: Ensure deploy script is executable
+        env:
+          VM_USER: ${{ secrets.VM_USER }}
+          VM_HOST: ${{ secrets.VM_HOST }}
+          VM_DIR: /opt/rehavid/app
         run: |
-          ssh -i ~/.ssh/vm_key "${{ secrets.VM_USER }}@${{ secrets.VM_HOST }}" \
-            "chmod +x ${{ env.VM_DIR }}/scripts/deploy-vm.sh"
+          ssh -i ~/.ssh/vm_key -o StrictHostKeyChecking=accept-new \
+            "${VM_USER}@${VM_HOST}" "chmod +x ${VM_DIR}/scripts/deploy-vm.sh"
 
       - name: Run deploy script on VM
         timeout-minutes: 20
+        env:
+          VM_USER: ${{ secrets.VM_USER }}
+          VM_HOST: ${{ secrets.VM_HOST }}
+          VM_DIR: /opt/rehavid/app
         run: |
-          ssh -i ~/.ssh/vm_key "${{ secrets.VM_USER }}@${{ secrets.VM_HOST }}" \
-            "cd ${{ env.VM_DIR }} && bash scripts/deploy-vm.sh"
+          ssh -i ~/.ssh/vm_key -o StrictHostKeyChecking=accept-new \
+            "${VM_USER}@${VM_HOST}" "cd ${VM_DIR} && bash scripts/deploy-vm.sh"
 
       - name: External health check
+        env:
+          VM_HOST: ${{ secrets.VM_HOST }}
         run: |
-          echo "Verifying health at http://${{ secrets.VM_HOST }}/health/ ..."
+          echo "Verifying health at http://${VM_HOST}/health/ ..."
           for i in $(seq 1 6); do
-            if curl -fsS --max-time 30 "http://${{ secrets.VM_HOST }}/health/"; then
+            if curl -fsS --max-time 30 "http://${VM_HOST}/health/"; then
               echo ""
               echo "Health check PASSED"
               echo "Deployed SHA: ${{ github.sha }}"

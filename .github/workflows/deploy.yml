@@ -1,14 +1,27 @@
-# Despliegue a Azure: build de la imagen de producción → push a ACR →
-# deploy a App Service for Containers. Las migraciones corren en el
-# arranque del contenedor (/start ejecuta migrate + collectstatic).
+# ===========================================================================
+# CD: Deploy to single Azure VM via SSH + rsync
+# ===========================================================================
+# Pivot 2026-07-17: abandoned ACR + App Service; now deploys to a single
+# Azure VM (20.119.43.198) by rsyncing the repo and running
+# scripts/deploy-vm.sh over SSH.
 #
-# Secrets requeridos en GitHub:
-#   AZURE_CREDENTIALS       · service principal JSON (az ad sp create-for-rbac --sdk-auth)
-#   ACR_LOGIN_SERVER        · p.ej. rehavidacr.azurecr.io
-#   ACR_USERNAME / ACR_PASSWORD
-#   AZURE_WEBAPP_NAME       · nombre del App Service de django
-#   AZURE_WEBAPP_NAME_WORKER (opcional) · App Service del celery worker
-#   AZURE_WEBAPP_NAME_BEAT   (opcional) · App Service del celery beat
+# Required GitHub Secrets (Settings → Secrets and variables → Actions):
+#   VM_SSH_KEY  — private SSH key contents for azureuser (from ~/.ssh/rehavid-vm-key)
+#   VM_HOST     — VM public IP (20.119.43.198)
+#   VM_USER     — SSH user (azureuser)
+#
+# .envs/.production/ on the VM is managed out-of-band and is NEVER
+# overwritten by this workflow (rsync excludes + filter protect).
+#
+# Manual rollback:
+#   ssh azureuser@<VM_HOST>
+#   cd /opt/rehavid/app
+#   git checkout <previous-tag>   # or rsync a previous release
+#   bash scripts/deploy-vm.sh
+#   CAVEAT: if the failed deploy applied a new migration, you may need
+#   `python manage.py migrate <app> <previous_migration>` before rolling
+#   back — Django migrations are not auto-reversed.
+# ===========================================================================
 
 name: Deploy
 
@@ -20,9 +33,6 @@ on:
 concurrency:
   group: deploy-${{ github.ref }}
   cancel-in-progress: false
-
-env:
-  IMAGE_NAME: rehavid-operaciones
 
 jobs:
   test:
@@ -52,66 +62,79 @@ jobs:
       - run: uv run python manage.py makemigrations --check
       - run: uv run pytest
 
-  build-and-deploy:
+  deploy-to-vm:
     needs: test
     runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      VM_DIR: /opt/rehavid/app
     steps:
       - uses: actions/checkout@v6
-
-      - name: Login ACR
-        uses: docker/login-action@v3
         with:
-          registry: ${{ secrets.ACR_LOGIN_SERVER }}
-          username: ${{ secrets.ACR_USERNAME }}
-          password: ${{ secrets.ACR_PASSWORD }}
+          fetch-depth: 1
 
-      - name: Build & push imagen de producción
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: ./compose/production/django/Dockerfile
-          push: true
-          tags: |
-            ${{ secrets.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
-            ${{ secrets.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:latest
+      - name: Install SSH client
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq openssh-client rsync
 
-      - name: Login Azure
-        uses: azure/login@v2
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
-
-      - name: Deploy django (App Service)
-        uses: azure/webapps-deploy@v3
-        with:
-          app-name: ${{ secrets.AZURE_WEBAPP_NAME }}
-          images: ${{ secrets.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
-
-      - name: Deploy celery worker (opcional)
-        if: ${{ secrets.AZURE_WEBAPP_NAME_WORKER != '' }}
-        uses: azure/webapps-deploy@v3
-        with:
-          app-name: ${{ secrets.AZURE_WEBAPP_NAME_WORKER }}
-          images: ${{ secrets.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
-          startup-command: /start-celeryworker
-
-      - name: Deploy celery beat (opcional)
-        if: ${{ secrets.AZURE_WEBAPP_NAME_BEAT != '' }}
-        uses: azure/webapps-deploy@v3
-        with:
-          app-name: ${{ secrets.AZURE_WEBAPP_NAME_BEAT }}
-          images: ${{ secrets.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
-          startup-command: /start-celerybeat
-
-      - name: Verificar health check
+      - name: Configure SSH key
         run: |
-          for i in $(seq 1 20); do
-            code=$(curl -s -o /dev/null -w '%{http_code}' "https://${{ secrets.AZURE_WEBAPP_NAME }}.azurewebsites.net/health/" || true)
-            if [ "$code" = "200" ]; then
-              echo "Health check OK"
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VM_SSH_KEY }}" > ~/.ssh/vm_key
+          chmod 600 ~/.ssh/vm_key
+          ssh-keyscan -H "${{ secrets.VM_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+
+      # -------------------------------------------------------------------
+      # rsync exclude notes:
+      #   - Trailing slash on directory excludes means "directory named X"
+      #     (not a file named X). This is standard rsync behavior.
+      #   - --exclude='.envs/.production/' prevents rsync from transferring
+      #     the directory, and --filter='protect .envs/.production/' is
+      #     belt-and-suspenders: even if --delete-after would normally
+      #     remove files absent from the sender, 'protect' tells rsync to
+      #     never delete matching paths on the receiver.
+      #   - .git/ is excluded because the VM doesn't need repo history;
+      #     deploy-vm.sh doesn't use git.
+      # -------------------------------------------------------------------
+      - name: Rsync code to VM
+        run: |
+          rsync -avz --delete-after \
+            --exclude='.git/' \
+            --exclude='.venv/' \
+            --exclude='node_modules/' \
+            --exclude='__pycache__/' \
+            --exclude='*.pyc' \
+            --exclude='.pytest_cache/' \
+            --exclude='.atl/' \
+            --exclude='.gga/' \
+            --exclude='.envs/.production/' \
+            --filter='protect .envs/.production/' \
+            -e "ssh -i ~/.ssh/vm_key -o StrictHostKeyChecking=accept-new" \
+            ./ \
+            "${{ secrets.VM_USER }}@${{ secrets.VM_HOST }}:${{ env.VM_DIR }}/"
+
+      - name: Ensure deploy script is executable
+        run: |
+          ssh -i ~/.ssh/vm_key "${{ secrets.VM_USER }}@${{ secrets.VM_HOST }}" \
+            "chmod +x ${{ env.VM_DIR }}/scripts/deploy-vm.sh"
+
+      - name: Run deploy script on VM
+        timeout-minutes: 20
+        run: |
+          ssh -i ~/.ssh/vm_key "${{ secrets.VM_USER }}@${{ secrets.VM_HOST }}" \
+            "cd ${{ env.VM_DIR }} && bash scripts/deploy-vm.sh"
+
+      - name: External health check
+        run: |
+          echo "Verifying health at http://${{ secrets.VM_HOST }}/health/ ..."
+          for i in $(seq 1 6); do
+            if curl -fsS --max-time 30 "http://${{ secrets.VM_HOST }}/health/"; then
+              echo ""
+              echo "Health check PASSED"
+              echo "Deployed SHA: ${{ github.sha }}"
               exit 0
             fi
-            echo "Intento $i: /health/ devolvió $code · reintentando en 15s"
-            sleep 15
+            echo "Attempt $i failed — retrying in 10s..."
+            sleep 10
           done
-          echo "El health check nunca respondió 200"
+          echo "Health check FAILED after 6 attempts"
           exit 1

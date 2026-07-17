@@ -13,8 +13,8 @@ portal externo para solicitantes, inventario por serial, paquetes multi-equipo, 
 logísticas, predictivo ML, dashboards y auditoría. 4 niveles de usuario:
 1 Admin Global · 2 Operador · 3 Coordinador · 4 Solicitante (regla: nivel <= N da acceso).
 
-**Fases 0-6 completas y commiteadas. Fase 7 (Docker prod + Azure) escrita, verificación
-pendiente** — ver "PENDIENTE de la Fase 7" en `ESTADO_MIGRACION.md`.
+**Fases 0-7 completas. Fase 7 (Docker prod + Azure) DESPLEGADA y verificada en single
+Azure VM (2026-07-17)** — ver `docs/ARQUITECTURA.md` sección 7 y `docs/DESPLIEGUE_AZURE.md`.
 
 ## Stack
 

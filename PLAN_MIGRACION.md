@@ -5,6 +5,13 @@
 **Infraestructura objetivo:** Docker en local y producción · Azure (Container Registry + App Service/Container Apps + PostgreSQL Flexible Server + Key Vault + Blob + App Insights)
 **Fecha del análisis:** 2026-07-13
 
+> **Nota de cierre (2026-07-17):** Las fases 0-7 están completas y la aplicación se
+> encuentra **en producción** en una single Azure VM con CI/CD automatizado (push a
+> `main` → deploy). Ver `docs/ARQUITECTURA.md` sección 7 y `docs/DESPLIEGUE_AZURE.md`
+> para el detalle del despliegue. La Fase 8 (QA integral + go-live con Rehavid) sigue
+> pendiente. El contenido de este documento se conserva como histórico inmutable del
+> plan original.
+
 ---
 
 ## 1 · Qué es la aplicación
@@ -180,7 +187,12 @@ rehavid_app/
 - [ ] **Auditoría**: middleware/servicio que registra acciones de negocio (login, crear/cancelar/reprogramar, exports, cambios de permisos…), vista con filtros + export.
 - [ ] **Excel server-side** (openpyxl, ya en el stack): export de reservas/equipos/log/ficha, plantilla e import de equipos con validación contra el modelo canónico (B7, B14).
 
-### Fase 7 · Docker producción + Azure (3-4 días)
+### Fase 7 · Docker producción + Azure (3-4 días) — ✅ RESUELTA 2026-07-17
+
+> **Cierre:** desplegada en single Azure VM (Ubuntu 24.04, Docker Compose con Caddy +
+> Django + Celery + Postgres + Redis). CI/CD vía GitHub Actions (push a `main`).
+> Detalles en `docs/ARQUITECTURA.md` sección 7 y `docs/DESPLIEGUE_AZURE.md`.
+> El plan original de App Service/ACR queda superseded.
 - [ ] `compose/production/django/Dockerfile` multi-stage (uv/pip → runtime slim, usuario no-root, collectstatic, gunicorn, healthcheck `/health/` — agregar endpoint con check de BD).
 - [ ] `docker-compose.production.yml` para staging local de la imagen.
 - [ ] Settings producción: `django-storages[azure]` para estáticos/media en Blob, Application Insights (opentelemetry), `SECURE_*`, allowed hosts.

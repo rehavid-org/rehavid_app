@@ -1,50 +1,67 @@
-# rehavid app
+# REHAVID Operaciones
 
-Behold My Awesome Project!
+Plataforma Django de gestión logística y ergonomía de **Rehavid S.A.S.** — ciclo completo
+de reservas de equipos de medición biomecánica (Xsens, EMG, Tobii, …) despachados a
+empresas cliente, con portal externo para solicitantes, inventario por serial, paquetes
+multi-equipo, alertas logísticas, predictivo ML, dashboards y auditoría.
 
-[![Built with Cookiecutter Django](https://img.shields.io/badge/built%20with-Cookiecutter%20Django-ff69b4.svg?logo=cookiecutter)](https://github.com/cookiecutter/cookiecutter-django/)
-[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
+Migración del prototipo FastAPI + HTML monolítico a una app Django modular.
 
-License: MIT
+## Stack
 
-## Settings
+- **Python 3.14** con [uv](https://docs.astral.sh/uv/) (lockfile `uv.lock`)
+- **Django 6** + DRF + django-allauth (login por email; SSO Microsoft/Entra opcional)
+- **PostgreSQL 16**, **Redis 7**, **Celery 5.5** (+beat)
+- Frontend: templates Django + Bootstrap 5 (modales/grid) + ECharts 5.5
+- Lint: `ruff` (line-length 119). Tests: `pytest` + factories
+- Docker en todo el ciclo (local y producción)
 
-Moved to [settings](https://cookiecutter-django.readthedocs.io/en/latest/1-getting-started/settings.html).
+## Estado
 
-## Basic Commands
+**En producción en single Azure VM** (Ubuntu 24.04 LTS, Standard_D2as_v7, eastus) con
+Docker Compose (Caddy + Django + Celery + Postgres + Redis). CI/CD vía GitHub Actions
+(push a `main` → tests → deploy).
 
-### Setting Up Your Users
+- URL actual (DNS temporal): <https://rehavid.20-119-43-198.nip.io/>
+- Dominio definitivo (pendiente DNS del cliente): `https://operaciones.rehavid.com.co/`
 
-- To create a **normal user account**, just go to Sign Up and fill out the form. Once you submit it, you'll see a "Verify Your E-mail Address" page. Go to your console to see a simulated email verification message. Copy the link into your browser. Now the user's email should be verified and ready to go.
+## Comandos básicos
 
-- To create a **superuser account**, use this command:
+```bash
+# Infra local (postgres, redis, mailpit):
+docker compose -f docker-compose.local.yml up -d postgres redis mailpit
 
-      uv run python manage.py createsuperuser
+# Dependencias del host:
+uv sync --group dev
 
-For convenience, you can keep your normal user logged in on Chrome and your superuser logged in on Firefox (or similar), so that you can see how the site behaves for both kinds of users.
+# Variables para correr desde el host:
+source .envs/.local/.postgres
+export DATABASE_URL="postgres://$POSTGRES_USER:$POSTGRES_PASSWORD@localhost:5432/$POSTGRES_DB"
 
-### Type checks
+# Migrar + sembrar datos demo:
+uv run python manage.py migrate
+uv run python manage.py seed_demo    # idempotente: 14 usuarios, 10 equipos, 57 reservas
 
-Running type checks with mypy:
+# Tests y lint:
+uv run pytest -q                     # 154 tests
+uv run ruff check .                  # debe quedar limpio antes de commit
 
-    uv run mypy rehavid_app
+# Servidor de desarrollo:
+uv run python manage.py runserver    # → http://localhost:8000
+```
 
-### Test coverage
+## Documentación
 
-To run the tests, check your test coverage, and generate an HTML coverage report:
+| Archivo | Contenido |
+|---|---|
+| `CLAUDE.md` | Mapa operativo (stack, apps, convenciones, comandos) |
+| `docs/ARQUITECTURA.md` | Mapa exhaustivo de la aplicación (modelos, URLs, permisos, API) |
+| `ESTADO_MIGRACION.md` | Bitácora de avance por fases (0-8) |
+| `PLAN_MIGRACION.md` | Plan original con reglas de negocio y defectos B1-B18 |
+| `docs/DESPLIEGUE_AZURE.md` | Infraestructura de producción (VM Azure + CI/CD) |
+| `AGENTS.md` | Guía para agentes automatizados y contribuidores |
+| `CHANGELOG.md` | Historial de versiones |
 
-    uv run coverage run -m pytest
-    uv run coverage html
-    uv run open htmlcov/index.html
+## Licencia
 
-#### Running tests with pytest
-
-    uv run pytest
-
-### Live reloading and Sass CSS compilation
-
-Moved to [Live reloading and SASS compilation](https://cookiecutter-django.readthedocs.io/en/latest/2-local-development/developing-locally.html#using-webpack-or-gulp).
-
-## Deployment
-
-The following details how to deploy this application.
+Ver archivo `LICENSE`.

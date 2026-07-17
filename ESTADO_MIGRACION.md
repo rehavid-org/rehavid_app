@@ -1,4 +1,4 @@
-# Estado de la migración · 2026-07-15
+# Estado de la migración · 2026-07-17
 
 Bitácora de avance contra `PLAN_MIGRACION.md`. **Retomar por "PRÓXIMO PASO" abajo.**
 
@@ -193,9 +193,9 @@ en vivo (descarga real + `openpyxl.load_workbook` sobre el archivo recibido, no 
   re-descarga) en los 9 endpoints de Excel de la app (Reservas, Equipos ×3, Auditoría, Planes ×3,
   Paquetes ×3, Usuarios, Portal). `ruff check .` limpio.
 
-## 🔶 Fase 7 · Docker producción + Azure — CÓDIGO ESCRITO, VERIFICACIÓN PENDIENTE
+## ✅ Fase 7 · Docker producción + Azure — COMPLETA (2026-07-17)
 
-### Hecho (commiteado, sin verificar en runtime)
+### Hecho (commiteado y verificado en producción)
 - `compose/production/django/Dockerfile` multi-stage: builder uv (`--no-dev`) → runtime `python:3.14-slim-trixie`, usuario `django` no-root, HEALTHCHECK a `/health/`, gunicorn :5000. **Imagen construida OK: 263MB** (antes 641MB — el fix fue crear `.dockerignore`, faltaba y el `COPY . /app` metía `.venv` y `.git`).
 - Scripts `compose/production/django/{entrypoint,start,celery/worker/start,celery/beat/start}`: entrypoint espera BD con psycopg (sin wait-for-it), start corre `migrate` + `collectstatic` + gunicorn.
 - `docker-compose.production.yml` (staging local: django+postgres+redis+celeryworker+celerybeat) + plantillas `.envs/.production_example/` (los reales van en `.envs/.production/`, git-ignored).
@@ -222,16 +222,16 @@ Archivos creados:
 
 El plan anterior de App Service queda **superseded** (ver nota en DESPLIEGUE_AZURE.md).
 
-### ⏳ PENDIENTE de la Fase 7 (retomar aquí)
+### ✅ Cierre de la Fase 7 (2026-07-17)
 1. ~~Liberar espacio en disco del Mac~~ **RESUELTO** (2026-07-15).
-2. `docker compose -f docker-compose.production.yml up --build` → verificar `curl localhost:5000/health/`, login y estáticos (whitenoise). **Pospuesto por decisión del usuario** (2026-07-15): por ahora solo se asegura que el código de producción esté completo, sin levantar el staging local.
-3. Verificar celeryworker/celerybeat del compose de producción. **Pospuesto** junto con el punto 2.
+2. ~~`docker compose -f docker-compose.production.yml up --build`~~ **SUPERSEDIDO**: el staging local fue reemplazado por el deploy real a single VM Azure (ver pivot 2026-07-16 arriba).
+3. ~~Verificar celeryworker/celerybeat del compose de producción~~ **RESUELTO**: corren en la VM de producción vía `docker-compose.vm.yml` (celeryworker + celerybeat).
 4. ✅ **Build de la imagen local y `up` full-docker — VERIFICADO (2026-07-15)**: `docker compose -f docker-compose.local.yml build django` compiló OK (fix `build-essential` confirmado, psycopg-c compila sin problema); `up -d` levantó los 6 servicios (postgres, redis, mailpit, django, celeryworker, celerybeat); datos del seed ya presentes en el volumen persistente; login real por email (`jhon.orrego@rehavid.com.co`) → 302 → `/reservas/` → 200. Full-docker local queda validado de punta a punta.
-5. Re-correr `pytest`. **Pospuesto por ahora** (decisión del usuario, 2026-07-15) — pendiente para más adelante.
-6. Cargar secrets en GitHub y probar el workflow deploy.yml contra Azure — **cuando se vaya a desplegar a producción real** (no ahora).
+5. ~~Re-correr `pytest`~~ **RESUELTO**: pytest corre verde en CI (GitHub Actions, `ci.yml`) contra postgres:16 — primer run verde 2026-07-17.
+6. ~~Cargar secrets en GitHub y probar el workflow deploy.yml contra Azure~~ **RESUELTO**: secrets `VM_SSH_KEY`, `VM_HOST`, `VM_USER` cargados en GitHub; `deploy.yml` disparado desde `main` en verde; health check externo pasa. La app está LIVE en <https://rehavid.20-119-43-198.nip.io/>.
 
-## ⏳ Fase 8 · Verificación integral — NO INICIADA
-Checklist funcional completo en sección 5 de `PLAN_MIGRACION.md`. El build de la imagen Docker local y `docker compose up` completo ya se verificaron (ver Fase 7, punto 4). Pendiente: pytest completo (pospuesto por decisión del usuario) y checklist funcional del plan.
+## 🔶 Fase 8 · Verificación integral — PARCIAL
+Checklist funcional completo en sección 5 de `PLAN_MIGRACION.md`. El build de la imagen Docker local y `docker compose up` completo ya se verificaron (ver Fase 7, punto 4). CI/CD con deploy automático en push-to-main (GitHub Actions), primer run verde 2026-07-17 — pytest corre contra postgres:16 en CI, ruff limpio. Backups diarios verificados en la VM de producción. Tests e2e de fases 6-7 siguen pospuestos por decisión del usuario. Pendiente: QA integral con el equipo Rehavid y go-live formal con dominio definitivo.
 
 ---
 
@@ -245,7 +245,7 @@ Checklist funcional completo en sección 5 de `PLAN_MIGRACION.md`. El build de l
 ### Modo A · Híbrido (el usado en las fases 0-6: rápido para desarrollar)
 
 ```bash
-cd /Users/yesid/Desktop/Desarrollo/Personal/rehavid_app
+cd /mnt/c/Users/Administrator/Desktop/rehavid_app
 
 # 1 · Si Docker Desktop no corre:  open -a Docker  (esperar al daemon)
 docker compose -f docker-compose.local.yml up -d postgres redis mailpit
@@ -277,13 +277,19 @@ docker compose -f docker-compose.local.yml run --rm django pytest
 `docker compose exec django ...` NO expone `DATABASE_URL` (solo el `entrypoint` la exporta para el proceso
 principal) — para comandos puntuales via `exec` usar `docker compose run --rm django <comando>` en su lugar.
 
-### Staging de producción local (cuando se retome Fase 7)
+### Producción (single Azure VM)
+
+El deploy a producción se hace vía CI/CD (push a `main` → `deploy.yml` → rsync + `deploy-vm.sh`).
+Para deploy manual o debugging en la VM:
 
 ```bash
-# .envs/.production/.{django,postgres} ya existen con valores de staging (git-ignored)
-docker compose -f docker-compose.production.yml up -d --build
-curl http://localhost:5000/health/       # → {"status": "ok"}
+ssh rehavid@<vm-ip>
+cd /opt/rehavid/rehavid_app
+docker compose -f docker-compose.vm.yml up -d --build
+# health check: curl https://rehavid.20-119-43-198.nip.io/health/
 ```
+
+Ver `docs/DESPLIEGUE_AZURE.md` para el detalle completo de la infraestructura.
 
 ### Usuarios del seed (login por EMAIL)
 
@@ -296,17 +302,25 @@ curl http://localhost:5000/health/       # → {"status": "ok"}
 
 Aterrizaje post-login por nivel: 1-2 → `/reservas/` · 3 → `/analitica/calendario/` · 4 → `/portal/`.
 
-### Estado del entorno / advertencias vigentes (2026-07-15)
+### Estado del entorno / advertencias vigentes (2026-07-17)
 
-- Espacio en disco: **resuelto** (42GB libres verificado 2026-07-15). Full-docker local
-  (`docker-compose.local.yml`) construido y levantado sin problemas.
-- Staging de producción local (`docker-compose.production.yml`) y verificación de
-  celeryworker/celerybeat: **pospuestos por decisión del usuario** — por ahora solo se
-  garantiza que el código de producción esté completo, sin correr ese compose localmente.
-- pytest: **pospuesto por decisión del usuario** por ahora (no es que esté roto; la última
-  corrida sana fue 2026-07-13 con 154 tests).
+- **Producción LIVE**: single Azure VM (Ubuntu 24.04 LTS, Standard_D2as_v7, eastus) con
+  Docker Compose (Caddy + Django + Celery worker/beat + Postgres 16 + Redis 7). URL
+  temporal: <https://rehavid.20-119-43-198.nip.io/>. Dominio definitivo pendiente de
+  DNS del cliente: `operaciones.rehavid.com.co`.
+- **CI/CD**: GitHub Actions con deploy automático en push a `main` (`deploy.yml`).
+  Primer run verde 2026-07-17. Secrets: `VM_SSH_KEY`, `VM_HOST`, `VM_USER`.
+  CI (`ci.yml`: ruff + pytest contra postgres:16) también corre en cada push.
+- **Backups**: `pg_dump` diario + gzip con retención local 7 días + upload a Azure Blob
+  vía managed identity de la VM.
+- **Hardening**: SSH key-only (password auth deshabilitado), fail2ban activo, solo
+  puertos 80/443 (Caddy) y 22 (SSH) expuestos.
+- Full-docker local (`docker-compose.local.yml`) construido y levantado sin problemas.
 - `mypy` no se ha corrido nunca sobre el proyecto.
+- **Passwords del seed**: 13 de 14 usuarios aún tienen passwords débiles (`demo123`/
+  `13011976`). Solo `ariel.ramirez@rehavid.com.co` fue rotado. Pendiente rotación masiva
+  antes de go-live formal.
 - Documentación de contexto completo: `CLAUDE.md` (mapa operativo), `docs/ARQUITECTURA.md`
   (mapa exhaustivo de la app), `docs/DESPLIEGUE_AZURE.md` (infra).
-- **Próximo trabajo**: cuando el usuario lo indique — correr pytest, y luego staging de
-  producción local + Azure real (secrets, workflow deploy.yml) cuando se vaya a desplegar.
+- **Próximo trabajo**: dominio definitivo (DNS del cliente), rotación de passwords del
+  seed, QA integral con equipo Rehavid (Fase 8).

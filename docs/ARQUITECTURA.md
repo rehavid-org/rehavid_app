@@ -1,7 +1,8 @@
 # REHAVID Operaciones · Mapa de la aplicación
 
-> Documento de contexto completo. Actualizado: 2026-07-13 (fases 0-6 completas,
-> Fase 7 escrita con verificación pendiente). Cómo levantar todo: `ESTADO_MIGRACION.md`.
+> Documento de contexto completo. Actualizado: 2026-07-17 (deploy single-VM + CI/CD en
+> producción; fases 0-6 completas). Cómo levantar todo: `ESTADO_MIGRACION.md`;
+> guía de infra: `docs/DESPLIEGUE_AZURE.md`.
 
 ## 1 · Dominio en una frase
 
@@ -167,20 +168,97 @@ Swagger: `/api/docs/` (solo admin). Los errores de negocio devuelven 400 con `{"
 
 ## 7 · Infra y settings
 
+> Topología vigente en producción: **single Azure VM** (todo en un servidor).
+> Pivot al plan original de App Service: 2026-07-17. Detalles en `docs/DESPLIEGUE_AZURE.md`.
+
+### Settings
+
 - `config/settings/base.py`: TZ America/Bogota, es-co, Celery (broker Redis, eager en
   local/test), allauth email login + provider microsoft, DRF session+token,
   `AZURE_ML_*`, `CELERY_BEAT_SCHEDULE` (alertas c/4h), `ALERTAS_EMAIL_FROM`,
   context processor del menú.
 - `local.py`: email consola, debug toolbar. `test.py`: eager, hashers rápidos.
-- `production.py`: Blob Storage si hay `DJANGO_AZURE_ACCOUNT_NAME` (si no → whitenoise),
-  anymail/Mailgun, SECURE_*, App Insights opcional, ALLOWED_HOSTS
-  `operaciones.rehavid.com.co`.
-- Docker local: `docker-compose.local.yml` (django, postgres:16, redis, celeryworker,
-  celerybeat, mailpit). Producción: `compose/production/django/Dockerfile` (multi-stage,
-  263MB, non-root, healthcheck) + `docker-compose.production.yml` — **verificación
-  pendiente** (ver ESTADO_MIGRACION Fase 7).
-- CI: `.github/workflows/ci.yml` (pre-commit + pytest). CD: `deploy.yml` (tags `v*` →
-  ACR → App Service → health check). Guía infra: `docs/DESPLIEGUE_AZURE.md`.
+- `production.py`: Blob Storage solo si está `DJANGO_AZURE_ACCOUNT_NAME` (en single-VM NO
+  se setea → cae a **whitenoise**). anymail/Mailgun (si no hay creds, console backend).
+  SECURE_*, App Insights opcional. Headers de reverse proxy behind-Caddy:
+  `USE_X_FORWARDED_HOST`, `SECURE_PROXY_SSL_HEADER`, `CSRF_TRUSTED_ORIGINS` (default
+  `https://operaciones.rehavid.com.co`). `collectfasta` se registra SOLO con Azure Blob
+  (fuera de ese bloque rompe collectstatic con whitenoise).
+- `ALLOWED_HOSTS` por env `DJANGO_ALLOWED_HOSTS` (en prod: dominio + ip + nip.io + FQDN Azure).
+
+### Desarrollo (host híbrido)
+
+- `docker-compose.local.yml`: django + postgres:16 + redis + celeryworker + celerybeat +
+  mailpit. El `.venv` del repo es para correr `manage.py`/`pytest`/`ruff` en el host;
+  las imágenes Docker instalan sus propias deps.
+- Ver `ESTADO_MIGRACION.md` para el modo de levantar (híbrido o full-docker local).
+
+### Producción — single Azure VM
+
+Todo en un servidor Ubuntu 24.04 LTS en Azure (`rehavid-vm`, `Standard_D2as_v7`, `eastus`):
+
+```
+Internet (443/80)  →  Caddy :443/:80  →  Django (gunicorn :5000, interno)
+   (auto-TLS Let's Encrypt prod)        ├── Celery worker + Celery beat
+                                        ├── Postgres 16 (5432, interno, NO expuesto)
+                                        └── Redis 7 (6379, interno, NO expuesto)
+```
+
+- `docker-compose.vm.yml` (repo): 6 servicios. Postgres/Redis **solo en red interna**
+  del compose (sin `ports:` al host). Caddy es la única entrada pública.
+- `compose/production/django/Dockerfile`: multi-stage (~263MB), non-root, HEALTHCHECK a
+  `/health/`. `start` corre migrate+collectstatic+gunicorn. `entrypoint` espera BD con
+  psycopg (sin wait-for-it).
+- `compose/vm/caddy/Caddyfile`: bloque del sitio para `operaciones.rehavid.com.co` + host
+  temporal `rehavid.20-119-43-198.nip.io`. `acme_ca` global fuerza Let's Encrypt **producción**
+  (no staging). Bloque `:80` con `route{}` sirve `/health/` por HTTP (pre-DNS) y redirige
+  el resto a HTTPS.
+- Env reales en `.envs/.production/` (git-ignored) — hostnames internos `postgres`/`redis`.
+- DNS temporal gratis vía **nip.io** (resuelve `<ip-con-guiones>.nip.io` sin registro),
+  con cert Let's Encrypt válido. Suficiente para usar la app por HTTPS antes de apuntar
+  el dominio real `operaciones.rehavid.com.co`.
+
+### Backups
+
+- `compose/vm/postgres/backup.sh`: `pg_dump` (custom format) + gzip a `/opt/rehavid/backups`,
+  retención 7 días local + subida a **Azure Blob Storage** vía managed identity de la VM.
+- Cron: `15 3 * * *` (ver `docs/DESPLIEGUE_AZURE.md`). Redis no se backupea (caché efímera).
+- Storage: `rehavidbackupsyn6d` / container `rehavid-pg-backups`. VM tiene role
+  "Storage Blob Data Contributor" sobre la cuenta.
+
+### Hardening SSH de la VM
+
+NSG permite 22/80/443. **22 está abierto a 0.0.0.0/0** (para runners de GitHub Actions)
+con protección en `sshd_config` + **fail2ban**:
+- `PasswordAuthentication no` (solo claves)
+- `PermitRootLogin no` (root ni con clave)
+- `PubkeyAuthentication yes`
+- fail2ban jail `sshd`: maxretry 5, bantime 1h, findtime 10m
+
+> Alternativa más segura (no implementada): self-hosted runner en la VM, cero inbound SSH.
+
+### CI/CD — GitHub Actions
+
+- `.github/workflows/ci.yml`: cada PR/push a `main` → `linter` (pre-commit, continue-on-error)
+  + `pytest` contra postgres:16 service + `DATABASE_URL`.
+- `.github/workflows/deploy.yml`: **push a `main`** (o `workflow_dispatch`) → `test` (pytest
+  contra postgres:16) → `deploy-to-vm`: rsync repo a `/opt/rehavid/app/` (con
+  `--filter='protect .envs/.production/'` para no tocar secrets), SSH run
+  `scripts/deploy-vm.sh` (`up -d --build` + health-wait + migrate + collectstatic),
+  verifica `http://<vm-ip>/health/` externo (6 reintentos).
+- Requiere **GitHub Secrets** del repo `rehavid-org/rehavid_app`:
+  `VM_SSH_KEY` (contenido de `~/.ssh/rehavid-vm-key`), `VM_HOST` (`20.119.43.198`),
+  `VM_USER` (`azureuser`). `.envs/.production/` en la VM se gestiona out-of-band — nunca
+  lo pisa el workflow.
+- Rollback: SSH a VM, `git checkout <tag>` / rsync previo, `bash scripts/deploy-vm.sh`.
+  Caveat: migraciones aplicadas no se auto-revierten.
+
+### URL y entrada de la app
+
+- Producción (dominio real pendiente de DNS): `https://operaciones.rehavid.com.co/`
+- Hoy con DNS temporal: `https://rehavid.20-119-43-198.nip.io/`
+- `/health/` (GET, público): `{"status":"ok"}` con check de BD — lo usan Caddy probe,
+  CI health check y monitoreo manual.
 
 ## 8 · Decisiones y gotchas que conviene recordar
 

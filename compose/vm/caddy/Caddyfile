@@ -17,8 +17,11 @@ operaciones.rehavid.com.co {
 	}
 }
 
-# Fallback HTTP: redirige a HTTPS. Útil antes de que el DNS propague
-# para verificar conectividad vía http://<vm-ip>/health/
+# Fallback HTTP: sirve /health/ en claro (para verificar por IP antes del DNS)
+# y redirige el resto a HTTPS una vez el DNS ya resuelve.
 :80 {
+	@health path /health /health/
+	reverse_proxy @health django:5000
+
 	redir https://{host}{uri} permanent
 }

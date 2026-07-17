@@ -2,6 +2,12 @@
 # Caddy emite y renueva el certificado automáticamente una vez que el DNS
 # de operaciones.rehavid.com.co apunte a la IP pública de la VM.
 
+{
+	# Fuerza Let's Encrypt PRODUCCIÓN (evita el endpoint staging, cuyos certs
+	# no son confiables por los navegadores).
+	acme_ca https://acme-v02.api.letsencrypt.org/directory
+}
+
 operaciones.rehavid.com.co {
 	encode gzip zstd
 
@@ -17,11 +23,13 @@ operaciones.rehavid.com.co {
 	}
 }
 
-# Fallback HTTP: sirve /health/ en claro (para verificar por IP antes del DNS)
-# y redirige el resto a HTTPS una vez el DNS ya resuelve.
+# Acceso por IP pre-DNS: /health en claro para verificar el stack vivo.
+# El resto redirige a HTTPS (cuando el DNS ya apunta usable). Envolver en
+# route{} fija el orden de directivas (sino redir gana sobre reverse_proxy).
 :80 {
-	@health path /health /health/
-	reverse_proxy @health django:5000
-
-	redir https://{host}{uri} permanent
+	route {
+		@health path /health /health/
+		reverse_proxy @health django:5000
+		redir https://{host}{uri} permanent
+	}
 }

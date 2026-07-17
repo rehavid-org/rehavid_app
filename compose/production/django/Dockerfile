@@ -54,6 +54,8 @@ RUN sed -i 's/\r$//g' /entrypoint /start /start-celeryworker /start-celerybeat \
 
 COPY --chown=django:django . ${APP_HOME}
 
+RUN mkdir -p ${APP_HOME}/staticfiles && chown django:django ${APP_HOME}/staticfiles ${APP_HOME}
+
 USER django
 
 # Probe de contenedor: el endpoint /health/ verifica la BD

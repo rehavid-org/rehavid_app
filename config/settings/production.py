@@ -95,6 +95,7 @@ if AZURE_ACCOUNT_NAME:
     }
     MEDIA_URL = f"https://{AZURE_ACCOUNT_NAME}.blob.core.windows.net/media/"
     COLLECTFASTA_STRATEGY = "collectfasta.strategies.azure.AzureBlobStrategy"
+    INSTALLED_APPS = ["collectfasta", *INSTALLED_APPS]
     STATIC_URL = f"https://{AZURE_ACCOUNT_NAME}.blob.core.windows.net/static/"
 else:
     STORAGES = {
@@ -141,10 +142,9 @@ ANYMAIL = {
     "MAILGUN_API_URL": env("MAILGUN_API_URL", default="https://api.mailgun.net/v3"),
 }
 
-# Collectfasta
+# Collectfasta (solo con Azure Blob para estáticos)
 # ------------------------------------------------------------------------------
 # https://github.com/jasongi/collectfasta#installation
-INSTALLED_APPS = ["collectfasta", *INSTALLED_APPS]
 
 # LOGGING
 # ------------------------------------------------------------------------------

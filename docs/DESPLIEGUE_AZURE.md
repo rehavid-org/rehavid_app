@@ -1,137 +1,191 @@
-# REHAVID Operaciones · Despliegue en Azure (app Django)
+# REHAVID Operaciones - Despliegue en Azure (VM unica)
 
-Adaptación de `../rehavid/docs/instrucciones_azure_ingeniero.md` a la arquitectura
-Django + PostgreSQL (sin Cosmos DB ni Static Web App: **un solo servicio Django**
-sirve HTML y API, más contenedores de Celery).
+> **Nota**: este documento reemplaza el plan anterior de App Service. La topologia
+> elegida es una unica VM Azure con Docker Compose (Django + Celery + Postgres +
+> Redis + Caddy). Mas simple, menor costo, un solo punto de operacion.
 
-## Topología
+## Topologia
 
-| Recurso | Nombre sugerido | Para qué |
+| Componente | Contenedor / servicio | Funcion |
 |---|---|---|
-| Resource Group | `rehavid-rg` | agrupa todo (region `eastus2`) |
-| Azure Container Registry | `rehavidacr` | imágenes de producción |
-| App Service Plan (Linux) | `rehavid-plan` | B1/B2 para arrancar |
-| App Service (container) | `rehavid-operaciones` | django (gunicorn :5000) |
-| App Service (container) | `rehavid-celery-worker` | celery worker (`/start-celeryworker`, sin puerto público) |
-| App Service (container) | `rehavid-celery-beat` | celery beat (`/start-celerybeat`, 1 instancia SIEMPRE) |
-| PostgreSQL Flexible Server | `rehavid-pg` | BD (B1ms para arrancar, backups automáticos) |
-| Azure Cache for Redis | `rehavid-redis` | broker Celery + cache |
-| Key Vault | `rehavid-kv` | SECRET_KEY, DB url, credenciales Entra/ML/Mailgun |
-| Storage Account (Blob) | `rehavidstorage` | contenedor `rehavid` con `static/` y `media/` |
-| Application Insights | `rehavid-appinsights` | telemetría (opcional, ver abajo) |
-| App registration Entra ID | `rehavid-sso` | SSO empleados `@rehavid.com.co` |
-| Dominio + SSL | `operaciones.rehavid.com.co` | CNAME al App Service + managed certificate |
+| Reverse proxy + TLS | `caddy:2.8-alpine` | Auto-TLS Let's Encrypt, puertos 80/443 |
+| App Django | `compose/production/django/Dockerfile` | Gunicorn :5000, whitenoise static |
+| Celery worker | misma imagen | `/start-celeryworker` |
+| Celery beat | misma imagen | `/start-celerybeat` |
+| PostgreSQL 16 | `postgres:16-alpine` | BD interna (sin puerto publico) |
+| Redis 7 | `redis:7-alpine` | Broker + cache (sin puerto publico) |
+| Backups | `backup.sh` (cron host) | Local + Azure Blob (managed identity) |
 
-## Pasos (az CLI)
+Todo corre en **una sola VM** (`rehavid-vm`, Ubuntu 24.04, Standard_B2ms).
+
+## Quick path
 
 ```bash
-az login && az account set --subscription "<subscription-id>"
-RG=rehavid-rg; LOC=eastus2
+# 1. Provisionar recursos Azure (ver seccion abajo)
+az group create -n rehavid-rg -l eastus2
+# ... (ver "Provision con az CLI")
 
+# 2. En la VM: instalar Docker, clonar repo, configurar .envs
+ssh rehavid@<vm-ip>
+bash scripts/deploy-vm.sh
+
+# 3. Apuntar DNS y verificar
+curl http://<vm-ip>/health/           # pre-DNS (HTTP plano)
+# Tras propagar DNS:
+curl https://operaciones.rehavid.com.co/health/
+```
+
+## Provision con az CLI
+
+```bash
+az login
+az account set --subscription "<subscription-id>"
+
+RG=rehavid-rg
+LOC=eastus2
+
+# Resource Group
 az group create --name $RG --location $LOC
 
-# 1 · Registry
-az acr create -g $RG -n rehavidacr --sku Basic --admin-enabled true
+# VM (Ubuntu 24.04 LTS, Standard_B2ms)
+az vm create \
+  --resource-group $RG \
+  --name rehavid-vm \
+  --image Canonical:ubuntu-24_04-lts:server:latest \
+  --size Standard_B2ms \
+  --admin-username rehavid \
+  --ssh-key-values @~/.ssh/id_rsa.pub \
+  --public-ip-sku Standard \
+  --assign-identity [system]
 
-# 2 · PostgreSQL Flexible Server (la app usa DATABASE_URL)
-az postgres flexible-server create -g $RG -n rehavid-pg \
-  --tier Burstable --sku-name Standard_B1ms --storage-size 32 \
-  --version 16 --database-name rehavid_app \
-  --admin-user rehavid --admin-password "<password-fuerte>"
-# Permitir acceso desde servicios de Azure:
-az postgres flexible-server firewall-rule create -g $RG -n rehavid-pg \
-  -r allow-azure --start-ip-address 0.0.0.0 --end-ip-address 0.0.0.0
+# NSG: solo SSH, HTTP, HTTPS
+az vm open-port -g $RG -n rehavid-vm --port 22 --priority 100
+az vm open-port -g $RG -n rehavid-vm --port 80 --priority 200
+az vm open-port -g $RG -n rehavid-vm --port 443 --priority 300
 
-# 3 · Redis
-az redis create -g $RG -n rehavid-redis --location $LOC --sku Basic --vm-size c0
+# Storage Account para backups
+az storage account create \
+  -g $RG -n rehavidstorage --sku Standard_LRS
 
-# 4 · Blob (estáticos + media). El container debe llamarse igual que
-#     DJANGO_AZURE_CONTAINER_NAME (default: rehavid)
-az storage account create -g $RG -n rehavidstorage --sku Standard_LRS
-az storage container create --account-name rehavidstorage -n rehavid --public-access blob
+az storage container create \
+  --account-name rehavidstorage \
+  -n rehavid-pg-backups \
+  --auth-mode login
 
-# 5 · Key Vault · TODOS los secretos viven aquí
-az keyvault create -g $RG -n rehavid-kv
-az keyvault secret set --vault-name rehavid-kv --name django-secret-key \
-  --value "$(python3 -c 'import secrets; print(secrets.token_urlsafe(64))')"
-az keyvault secret set --vault-name rehavid-kv --name database-url \
-  --value "postgres://rehavid:<password>@rehavid-pg.postgres.database.azure.com:5432/rehavid_app?sslmode=require"
-# + azure-account-key, mailgun-api-key, entra-client-secret, azure-ml-key…
-
-# 6 · App Service Plan + Web Apps de contenedor
-az appservice plan create -g $RG -n rehavid-plan --is-linux --sku B2
-for APP in rehavid-operaciones rehavid-celery-worker rehavid-celery-beat; do
-  az webapp create -g $RG -p rehavid-plan -n $APP \
-    --deployment-container-image-name rehavidacr.azurecr.io/rehavid-operaciones:latest
-done
-az webapp config set -g $RG -n rehavid-celery-worker --startup-file /start-celeryworker
-az webapp config set -g $RG -n rehavid-celery-beat  --startup-file /start-celerybeat
-az webapp config appsettings set -g $RG -n rehavid-operaciones --settings \
-  WEBSITES_PORT=5000 \
-  DJANGO_SETTINGS_MODULE=config.settings.production \
-  DJANGO_ALLOWED_HOSTS=operaciones.rehavid.com.co \
-  DJANGO_SECRET_KEY="@Microsoft.KeyVault(VaultName=rehavid-kv;SecretName=django-secret-key)" \
-  DATABASE_URL="@Microsoft.KeyVault(VaultName=rehavid-kv;SecretName=database-url)" \
-  REDIS_URL="rediss://:<redis-key>@rehavid-redis.redis.cache.windows.net:6380/0" \
-  DJANGO_AZURE_ACCOUNT_NAME=rehavidstorage \
-  DJANGO_AZURE_CONTAINER_NAME=rehavid \
-  DJANGO_AZURE_ACCOUNT_KEY="@Microsoft.KeyVault(VaultName=rehavid-kv;SecretName=azure-account-key)" \
-  DJANGO_ADMIN_URL="admin-rehavid/"
-# (repetir appsettings en worker y beat · no necesitan WEBSITES_PORT)
-# Para que los App Service lean Key Vault: habilitar identidad administrada y
-# darle 'get' sobre secretos:
-az webapp identity assign -g $RG -n rehavid-operaciones
-az keyvault set-policy -n rehavid-kv --object-id <principalId> --secret-permissions get
-
-# 7 · Health probe
-az webapp config set -g $RG -n rehavid-operaciones --generic-configurations '{"healthCheckPath": "/health/"}'
-
-# 8 · Dominio + SSL
-az webapp config hostname add -g $RG --webapp-name rehavid-operaciones \
-  --hostname operaciones.rehavid.com.co
-az webapp config ssl create -g $RG -n rehavid-operaciones --hostname operaciones.rehavid.com.co
+# Dar permiso a la identidad de la VM sobre el container
+VM_PRINCIPAL=$(az vm show -g $RG -n rehavid-vm --query identity.principalId -otsv)
+az role assignment create \
+  --assignee $VM_PRINCIPAL \
+  --role "Storage Blob Data Contributor" \
+  --scope $(az storage account show -g $RG -n rehavidstorage --query id -otsv)
 ```
+
+## Setup de la VM
+
+```bash
+ssh rehavid@<vm-ip>
+
+# Docker engine + compose plugin
+curl -fsSL https://get.docker.com | sudo sh
+sudo usermod -aG docker $USER
+# (re-login para que el grupo docker tome efecto)
+
+# Clonar repo
+sudo mkdir -p /opt/rehavid/app
+sudo chown $USER:$USER /opt/rehavid/app
+git clone https://github.com/rehavid-org/rehavid_app.git /opt/rehavid/app
+
+# Configurar envs de produccion
+mkdir -p /opt/rehavid/app/.envs/.production
+cp /opt/rehavid/app/.envs/.production_example/.django /opt/rehavid/app/.envs/.production/.django
+cp /opt/rehavid/app/.envs/.production_example/.postgres /opt/rehavid/app/.envs/.production/.postgres
+# EDITAR ambos archivos con valores reales (secret, passwords, mailgun, etc.)
+
+# Crear directorio de backups
+sudo mkdir -p /opt/rehavid/backups
+sudo chown $USER:$USER /opt/rehavid/backups
+
+# Desplegar
+bash /opt/rehavid/app/scripts/deploy-vm.sh
+```
+
+## Backups
+
+El script `compose/vm/postgres/backup.sh` corre en el **host** (no en contenedor):
+
+- `pg_dump` via `docker compose exec` + gzip a `/opt/rehavid/backups/`
+- Retencion local: 7 dias (configurable via `RETENTION_DAYS`)
+- Off-VM: sube a Azure Blob via managed identity (si `AZURE_STORAGE_ACCOUNT` esta set)
+- Un fallo de Blob nunca rompe el backup local
+
+### Cron
+
+```bash
+crontab -e
+# Agregar:
+15 3 * * *  /opt/rehavid/app/compose/vm/postgres/backup.sh >> /var/log/rehavid-backup.log 2>&1
+```
+
+### Restore
+
+```bash
+# Desde un dump local:
+docker compose -f docker-compose.vm.yml exec -T postgres \
+  pg_restore -U cloudcoder -d rehavid_app --clean --if-exists \
+  < /opt/rehavid/backups/rehavid-XXXXXXXXTXXXXXXZ.dump.gz
+```
+
+## DNS + SSL
+
+1. Crear registro DNS: `operaciones.rehavid.com.co` → CNAME o A → IP publica de la VM.
+2. Caddy detecta el dominio y emite el certificado Let's Encrypt automaticamente.
+3. **Antes de que el DNS propague**, se puede verificar via `http://<vm-ip>/health/`.
+4. Una vez el DNS resuelve, `https://operaciones.rehavid.com.co` funciona con TLS.
 
 ## SSO Microsoft Entra ID
 
 1. App registration `rehavid-sso` (single tenant).
 2. Redirect URI: `https://operaciones.rehavid.com.co/accounts/microsoft/login/callback/`.
-3. Crear client secret → Key Vault → app settings `AZURE_SSO_CLIENT_ID`,
-   `AZURE_SSO_CLIENT_SECRET`, `AZURE_SSO_TENANT_ID` (la app ya trae el provider
-   configurado con auto-vinculación por email verificado).
-
-## Application Insights (opcional)
-
-```bash
-az monitor app-insights component create -g $RG --app rehavid-appinsights --location $LOC
-```
-Setear `APPLICATIONINSIGHTS_CONNECTION_STRING` como app setting **y** agregar
-`azure-monitor-opentelemetry` a las dependencias de la imagen. Si la variable
-está y el paquete no, la app arranca igual (solo deja un warning).
+3. Setear en `.envs/.production/.django`: `AZURE_SSO_CLIENT_ID`, `AZURE_SSO_CLIENT_SECRET`, `AZURE_SSO_TENANT_ID`.
+4. Reiniciar: `docker compose -f docker-compose.vm.yml restart django`.
 
 ## Azure ML (predictivo)
 
-Los scripts de entrenamiento viven en el repo original (`../rehavid/ml/`) y son
-offline. Cuando el endpoint esté desplegado: setear `AZURE_ML_ENABLED=True`,
-`AZURE_ML_ENDPOINT`, `AZURE_ML_KEY`, `AZURE_ML_DEPLOYMENT`. El servicio Django
-cae automáticamente al mock si el endpoint falla.
+Cuando el endpoint este desplegado, setear en `.django`:
+`AZURE_ML_ENABLED=True`, `AZURE_ML_ENDPOINT`, `AZURE_ML_KEY`, `AZURE_ML_DEPLOYMENT`.
+El servicio Django cae automaticamente al mock heuristico si el endpoint falla.
 
-## CI/CD
+## Rollback / Restore
 
-`.github/workflows/deploy.yml`: al taggear `v*` (o correr manualmente) →
-tests contra Postgres 16 → build de `compose/production/django/Dockerfile` →
-push a ACR (`:sha` y `:latest`) → deploy a los App Service → espera el 200 de
-`/health/`. Migraciones y `collectstatic` (a Blob, con collectfasta) corren en
-el arranque del contenedor (`/start`).
+```bash
+# Listar backups disponibles:
+ls -lh /opt/rehavid/backups/
 
-Secrets de GitHub requeridos: `AZURE_CREDENTIALS`, `ACR_LOGIN_SERVER`,
-`ACR_USERNAME`, `ACR_PASSWORD`, `AZURE_WEBAPP_NAME` (+ `_WORKER`/`_BEAT`).
+# Restore desde backup:
+docker compose -f docker-compose.vm.yml exec -T postgres \
+  pg_restore -U cloudcoder -d rehavid_app --clean --if-exists \
+  < /opt/rehavid/backups/rehavid-20260716T031500Z.dump.gz
+
+# Reiniciar app:
+docker compose -f docker-compose.vm.yml restart django celeryworker celerybeat
+```
+
+## Costo estimado
+
+| Recurso | SKU | Costo mensual aprox. |
+|---|---|---|
+| VM Standard_B2ms | 2 vCPU, 8 GB RAM | ~$60 USD |
+| Disco OS 64 GB | Premium SSD | ~$8 USD |
+| Storage Account | Standard LRS, <10 GB backups | ~$1 USD |
+| **Total** | | **~$70 USD/mes** |
+
+Significativamente menor que App Service + PG Flexible + Redis + Blob por separado.
 
 ## Staging local de la imagen
 
 ```bash
 cp .envs/.production_example/.django .envs/.production/.django   # y completar
 cp .envs/.production_example/.postgres .envs/.production/.postgres
-docker compose -f docker-compose.production.yml up --build
-curl http://localhost:5000/health/   # → {"status": "ok"}
+docker compose -f docker-compose.vm.yml up --build
+curl http://localhost/health/   # via Caddy (o http://localhost:5000/health/ sin Caddy)
 ```

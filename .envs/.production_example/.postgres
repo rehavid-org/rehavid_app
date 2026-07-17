@@ -1,6 +1,6 @@
 # Plantilla: copiar a .envs/.production/.postgres (NO se versiona) y completar.
-POSTGRES_HOST=postgres
-POSTGRES_PORT=5432
+# Estos valores los lee el servicio postgres de docker-compose.vm.yml.
+# El DATABASE_URL en .django debe coincidir: postgres://<user>:<password>@postgres:5432/<db>
 POSTGRES_DB=rehavid_app
-POSTGRES_USER=CAMBIAR
-POSTGRES_PASSWORD=CAMBIAR
+POSTGRES_USER=cloudcoder
+POSTGRES_PASSWORD=change-me

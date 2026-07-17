@@ -1,0 +1,95 @@
+# Producción en VM única Azure — todo en un servidor. Ver docs/DESPLIEGUE_AZURE.md.
+
+volumes:
+  pg_data: {}
+  caddy_data: {}
+  caddy_config: {}
+
+services:
+  caddy:
+    image: caddy:2.8-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./compose/vm/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      django:
+        condition: service_healthy
+
+  django: &django
+    build:
+      context: .
+      dockerfile: ./compose/production/django/Dockerfile
+    image: rehavid_app_production_django
+    command: /start
+    restart: unless-stopped
+    env_file:
+      - ./.envs/.production/.django
+      - ./.envs/.production/.postgres
+    expose:
+      - "5000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:5000/health/', timeout=4).status == 200 else 1)",
+        ]
+      interval: 30s
+      timeout: 5s
+      start_period: 40s
+      retries: 3
+
+  celeryworker:
+    <<: *django
+    image: rehavid_app_production_celeryworker
+    command: /start-celeryworker
+    expose: []
+    depends_on:
+      django:
+        condition: service_healthy
+
+  celerybeat:
+    <<: *django
+    image: rehavid_app_production_celerybeat
+    command: /start-celerybeat
+    expose: []
+    depends_on:
+      django:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    env_file:
+      - ./.envs/.production/.postgres
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    expose:
+      - "5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    expose:
+      - "6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5

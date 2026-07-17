@@ -1,33 +1,30 @@
 # Plantilla: copiar a .envs/.production/.django (NO se versiona) y completar.
-# En Azure estos valores viven en Key Vault y llegan como app settings.
+# En la VM estos valores se cargan directamente por docker-compose.vm.yml.
 
 # General
 DJANGO_SETTINGS_MODULE=config.settings.production
-DJANGO_SECRET_KEY=CAMBIAR-POR-SECRETO-DE-KEY-VAULT
+DJANGO_SECRET_KEY=change-me
 DJANGO_ADMIN_URL=admin-rehavid/
-DJANGO_ALLOWED_HOSTS=operaciones.rehavid.com.co
+DJANGO_ALLOWED_HOSTS=operaciones.rehavid.com.co,localhost,127.0.0.1
 
 # Seguridad
-DJANGO_SECURE_SSL_REDIRECT=False
+DJANGO_SECURE_SSL_REDIRECT=True
+DJANGO_CSRF_TRUSTED_ORIGINS=https://operaciones.rehavid.com.co
 
-# Redis / Celery
+# Redis / Celery (hostname interno del compose)
 REDIS_URL=redis://redis:6379/0
 
-# Azure Blob (estáticos y media)
-DJANGO_AZURE_ACCOUNT_KEY=
-DJANGO_AZURE_ACCOUNT_NAME=
-DJANGO_AZURE_CONTAINER_NAME=rehavid
-
-# Email (anymail · Mailgun)
+# Email (anymail / Mailgun)
 MAILGUN_API_KEY=
 MAILGUN_DOMAIN=
+MAILGUN_API_URL=https://api.mailgun.net/v3
 
-# SSO Microsoft Entra ID
-AZURE_SSO_CLIENT_ID=
-AZURE_SSO_CLIENT_SECRET=
-AZURE_SSO_TENANT_ID=
+# SSO Microsoft Entra ID (configurar cuando se active)
+# AZURE_SSO_CLIENT_ID=
+# AZURE_SSO_CLIENT_SECRET=
+# AZURE_SSO_TENANT_ID=
 
-# Predictivo (Azure ML) · dejar en False hasta desplegar el modelo
+# Predictivo (Azure ML) - dejar en False hasta desplegar el modelo
 AZURE_ML_ENABLED=False
 AZURE_ML_ENDPOINT=
 AZURE_ML_KEY=
@@ -41,3 +38,7 @@ ALERTAS_EMAIL_FROM=operaciones@rehavid.com.co
 
 # Gunicorn
 GUNICORN_WORKERS=4
+
+# Backups off-VM (Azure Blob via managed identity)
+# AZURE_STORAGE_ACCOUNT=
+# AZURE_STORAGE_BACKUP_CONTAINER=rehavid-pg-backups

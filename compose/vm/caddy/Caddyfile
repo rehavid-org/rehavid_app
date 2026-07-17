@@ -1,0 +1,24 @@
+# Reverse proxy con auto-TLS (Let's Encrypt) para REHAVID Operaciones.
+# Caddy emite y renueva el certificado automáticamente una vez que el DNS
+# de operaciones.rehavid.com.co apunte a la IP pública de la VM.
+
+operaciones.rehavid.com.co {
+	encode gzip zstd
+
+	reverse_proxy django:5000 {
+		header_up X-Forwarded-Proto {scheme}
+		header_up X-Forwarded-Host {host}
+	}
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		X-Content-Type-Options "nosniff"
+	}
+}
+
+# Fallback HTTP: redirige a HTTPS. Útil antes de que el DNS propague
+# para verificar conectividad vía http://<vm-ip>/health/
+:80 {
+	redir https://{host}{uri} permanent
+}

@@ -205,6 +205,23 @@ en vivo (descarga real + `openpyxl.load_workbook` sobre el archivo recibido, no 
 - `docs/DESPLIEGUE_AZURE.md`: guía completa az CLI adaptada de la del prototipo (RG, ACR, PG Flexible, Redis, Blob, Key Vault, App Services, SSO Entra, dominio, App Insights, Azure ML).
 - Fix también en `compose/local/django/Dockerfile`: `gcc` → `build-essential` (psycopg-c no compilaba: faltaba `assert.h`/libc6-dev).
 
+### 📌 Pivot a VM unica Azure · 2026-07-16
+
+Se abandono el plan de App Service (multiples servicios gestionados) en favor de una
+**unica VM Azure** con Docker Compose: Django + Celery worker/beat + Postgres 16 + Redis 7
++ Caddy (auto-TLS). Backups locales + off-VM a Azure Blob via managed identity.
+
+Archivos creados:
+- `docker-compose.vm.yml` — compose de produccion para la VM
+- `compose/vm/caddy/Caddyfile` — reverse proxy con Let's Encrypt
+- `compose/vm/postgres/backup.sh` — backup diario (cron host)
+- `scripts/deploy-vm.sh` — script de despliegue idempotente
+- `.envs/.production_example/{.django,.postgres}` — actualizados a la topologia VM
+- `config/settings/production.py` — `USE_X_FORWARDED_HOST`, `CSRF_TRUSTED_ORIGINS`
+- `docs/DESPLIEGUE_AZURE.md` — reescrito con el enfoque VM unica
+
+El plan anterior de App Service queda **superseded** (ver nota en DESPLIEGUE_AZURE.md).
+
 ### ⏳ PENDIENTE de la Fase 7 (retomar aquí)
 1. ~~Liberar espacio en disco del Mac~~ **RESUELTO** (2026-07-15).
 2. `docker compose -f docker-compose.production.yml up --build` → verificar `curl localhost:5000/health/`, login y estáticos (whitenoise). **Pospuesto por decisión del usuario** (2026-07-15): por ahora solo se asegura que el código de producción esté completo, sin levantar el staging local.

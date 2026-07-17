@@ -8,7 +8,7 @@
 	acme_ca https://acme-v02.api.letsencrypt.org/directory
 }
 
-operaciones.rehavid.com.co {
+operaciones.rehavid.com.co, rehavid.20-119-43-198.nip.io {
 	encode gzip zstd
 
 	reverse_proxy django:5000 {

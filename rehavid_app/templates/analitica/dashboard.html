@@ -66,7 +66,7 @@
     <div class="col-lg-8"><div class="card-r"><p class="card-titulo">Evolución semanal de salidas</p><div id="ch-evolucion" style="height:280px"></div></div></div>
     <div class="col-lg-4"><div class="card-r"><p class="card-titulo">Estado de la flota</p><div id="ch-equipos" style="height:280px"></div></div></div>
     <div class="col-lg-6"><div class="card-r"><p class="card-titulo">Top clientes por volumen</p><div id="ch-clientes" style="height:280px"></div></div></div>
-    <div class="col-lg-6"><div class="card-r"><p class="card-titulo">Distribución por servicio y mes</p><div id="ch-servicio-mes" style="height:280px"></div></div></div>
+    <div class="col-lg-6"><div class="card-r"><p class="card-titulo">Distribución por servicio y mes</p><div id="ch-servicio-mes" style="height:340px"></div></div></div>
     <div class="col-lg-6"><div class="card-r"><p class="card-titulo">Composición del portafolio · servicio × ciudad</p><div id="ch-treemap" style="height:320px"></div></div></div>
     <div class="col-lg-12"><div class="card-r"><p class="card-titulo">Flujo servicio → ciudad → cliente</p><div id="ch-sankey" style="height:380px"></div></div></div>
     <div class="col-lg-7"><div class="card-r"><p class="card-titulo">Perfil operativo por ciudad</p><div id="ch-perfil-ciudad" style="height:320px"></div></div></div>
@@ -136,7 +136,7 @@
             name: d.label, value: d.n,
             itemStyle: { color: ESTADO_COLOR[d.estado] || BRAND_LIGHT, borderColor: '#fff', borderWidth: 2 },
           })),
-          label: { color: INK3, formatter: '{b}: {c}' },
+          label: { show: false },
         }],
       });
 
@@ -145,6 +145,7 @@
         const colores = [BRAND, '#00A055', '#B8770F', '#B23B5C', '#8B5CF6', '#6952DA'];
         echarts.init(document.getElementById('ch-servicio-mes')).setOption({
           ...base,
+          grid: { left: 8, right: 24, top: 12, bottom: 76, containLabel: true },
           tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
           legend: { bottom: 0, textStyle: { color: INK3 } },
           xAxis: ejeValor,
@@ -173,7 +174,19 @@
       }
 
       if (series.sankey && series.sankey.nodes.length) {
-        echarts.init(document.getElementById('ch-sankey')).setOption({
+        // Alto dinámico: sin esto, una columna (típicamente clientes) con muchos
+        // nodos queda con las etiquetas apretadas/solapadas en pantallas angostas.
+        const sankeySources = new Set(series.sankey.links.map((l) => l.source));
+        const sankeyTargets = new Set(series.sankey.links.map((l) => l.target));
+        const sankeyCols = [0, 0, 0];
+        series.sankey.nodes.forEach((n) => {
+          if (!sankeyTargets.has(n.name)) sankeyCols[0] += 1;
+          else if (!sankeySources.has(n.name)) sankeyCols[2] += 1;
+          else sankeyCols[1] += 1;
+        });
+        const sankeyEl = document.getElementById('ch-sankey');
+        sankeyEl.style.height = `${Math.max(380, Math.max(...sankeyCols) * 24 + 40)}px`;
+        echarts.init(sankeyEl).setOption({
           ...base,
           tooltip: { trigger: 'item' },
           series: [{
@@ -191,6 +204,7 @@
         const colores = [BRAND, BRAND_LIGHT, '#00A055'];
         echarts.init(document.getElementById('ch-perfil-ciudad')).setOption({
           ...base,
+          grid: { left: 8, right: 24, top: 12, bottom: 48, containLabel: true },
           tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
           legend: { bottom: 0, textStyle: { color: INK3 } },
           xAxis: { type: 'value', max: 100, axisLabel: { color: INK3, formatter: '{value}%' } },

@@ -59,11 +59,11 @@
           <th>Código</th>
           <th>Servicio</th>
           <th>Cliente</th>
-          <th>Ciudad</th>
-          <th class="tar">Personas</th>
+          <th class="col-secundaria">Ciudad</th>
+          <th class="tar col-secundaria">Personas</th>
           <th>Salida</th>
-          <th>Retorno esp.</th>
-          <th>Equipos</th>
+          <th class="col-secundaria">Retorno esp.</th>
+          <th class="col-secundaria">Equipos</th>
           <th>Estado</th>
           <th>Acciones</th>
         </tr>
@@ -71,20 +71,29 @@
       <tbody>
         {% for r in reservas %}
           <tr>
-            <td><span class="code">{{ r.codigo }}</span></td>
+            <td>
+              <span class="code">{{ r.codigo }}</span>
+              <div class="small muted solo-movil">
+                {% for e in r.equipos.all %}{{ e.codigo }}{% if not forloop.last %} · {% endif %}{% empty %}—{% endfor %}
+              </div>
+            </td>
             <td>
               {{ r.servicio.nombre }}
               {% if r.paquete %}<span class="chip info">{{ r.paquete.codigo }}</span>{% endif %}
             </td>
-            <td>{{ r.cliente.nombre }}</td>
-            <td>{{ r.ciudad.nombre }}</td>
-            <td class="tar">{{ r.personas }}</td>
+            <td>
+              {{ r.cliente.nombre }}
+              <div class="small muted solo-movil">{{ r.ciudad.nombre }} · {{ r.personas }} persona{{ r.personas|pluralize }}</div>
+            </td>
+            <td class="col-secundaria">{{ r.ciudad.nombre }}</td>
+            <td class="tar col-secundaria">{{ r.personas }}</td>
             <td>
               {{ r.fecha_salida|date:"d M Y" }}
               {% if r.reprogramada_desde %}<div class="small muted">antes {{ r.reprogramada_desde|date:"d M" }}</div>{% endif %}
+              <div class="small muted solo-movil">→ retorno {{ r.fecha_retorno_esp|date:"d M Y" }}</div>
             </td>
-            <td>{{ r.fecha_retorno_esp|date:"d M Y" }}</td>
-            <td>
+            <td class="col-secundaria">{{ r.fecha_retorno_esp|date:"d M Y" }}</td>
+            <td class="col-secundaria">
               {% for e in r.equipos.all %}<span class="code">{{ e.codigo }}</span>{% if not forloop.last %} · {% endif %}{% empty %}<span class="muted">—</span>{% endfor %}
             </td>
             <td>

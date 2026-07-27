@@ -33,15 +33,18 @@
     <div class="tabla-wrap" style="border:0">
       <table class="tabla-r">
         <thead>
-          <tr><th>Cliente</th><th>Servicio</th><th>Ciudad</th><th>Retorno esp.</th><th class="tar">Días</th><th>Acción sugerida</th></tr>
+          <tr><th>Cliente</th><th>Servicio</th><th class="col-secundaria">Ciudad</th><th class="col-secundaria">Retorno esp.</th><th class="tar">Días</th><th>Acción sugerida</th></tr>
         </thead>
         <tbody>
           {% for p in estado_reservas.proximas_a_vencer %}
             <tr>
               <td><strong>{{ p.reserva.cliente.nombre }}</strong></td>
-              <td>{{ p.reserva.servicio.nombre }}</td>
-              <td>{{ p.reserva.ciudad.nombre }}</td>
-              <td>{{ p.reserva.fecha_retorno_esp|date:"Y-m-d" }}</td>
+              <td>
+                {{ p.reserva.servicio.nombre }}
+                <div class="small muted solo-movil">{{ p.reserva.ciudad.nombre }} · retorno {{ p.reserva.fecha_retorno_esp|date:"d M Y" }}</div>
+              </td>
+              <td class="col-secundaria">{{ p.reserva.ciudad.nombre }}</td>
+              <td class="col-secundaria">{{ p.reserva.fecha_retorno_esp|date:"Y-m-d" }}</td>
               <td class="tar">{% if p.dias >= 0 %}+{% endif %}{{ p.dias }}</td>
               <td><span class="chip {% if p.clase == 'bad' %}cancelada{% elif p.clase == 'warn' %}pendiente{% else %}info{% endif %}">{{ p.accion }}</span></td>
             </tr>
@@ -93,15 +96,18 @@
         <div class="tabla-wrap" style="border:0">
           <table class="tabla-r">
             <thead>
-              <tr><th>Fecha</th><th>Tipo</th><th>Canal</th><th>Destino</th><th>Resultado</th></tr>
+              <tr><th>Fecha</th><th>Tipo</th><th class="col-secundaria">Canal</th><th class="col-secundaria">Destino</th><th>Resultado</th></tr>
             </thead>
             <tbody>
               {% for h in historial %}
                 <tr>
                   <td>{{ h.timestamp|date:"d M H:i" }}</td>
-                  <td>{{ h.tipo }}</td>
-                  <td>{{ h.get_canal_display }}</td>
-                  <td>{{ h.destino }}</td>
+                  <td>
+                    {{ h.tipo }}
+                    <div class="small muted solo-movil">{{ h.get_canal_display }} · {{ h.destino }}</div>
+                  </td>
+                  <td class="col-secundaria">{{ h.get_canal_display }}</td>
+                  <td class="col-secundaria">{{ h.destino }}</td>
                   <td>
                     {% if "stub" in h.resultado %}<span class="chip pendiente">stub</span>
                     {% elif "error" in h.resultado %}<span class="chip cancelada">error</span>

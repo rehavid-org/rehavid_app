@@ -27,17 +27,23 @@
       {% if reservas_dia %}
         <table class="tabla-r" style="background:transparent">
           <thead>
-            <tr><th>Código</th><th>Servicio</th><th>Cliente</th><th>Ciudad</th><th>Salida</th><th>Retorno</th></tr>
+            <tr><th>Código</th><th>Servicio</th><th>Cliente</th><th class="col-secundaria">Ciudad</th><th>Salida</th><th class="col-secundaria">Retorno</th></tr>
           </thead>
           <tbody>
             {% for r in reservas_dia %}
               <tr>
                 <td><span class="code">{{ r.codigo }}</span></td>
                 <td>{{ r.servicio.nombre }}</td>
-                <td>{{ r.cliente.nombre }}</td>
-                <td>{{ r.ciudad.nombre }}</td>
-                <td>{{ r.fecha_salida|date:"d M" }}</td>
-                <td>{{ r.fecha_retorno_esp|date:"d M" }}</td>
+                <td>
+                  {{ r.cliente.nombre }}
+                  <div class="small muted solo-movil">{{ r.ciudad.nombre }}</div>
+                </td>
+                <td class="col-secundaria">{{ r.ciudad.nombre }}</td>
+                <td>
+                  {{ r.fecha_salida|date:"d M" }}
+                  <div class="small muted solo-movil">→ {{ r.fecha_retorno_esp|date:"d M" }}</div>
+                </td>
+                <td class="col-secundaria">{{ r.fecha_retorno_esp|date:"d M" }}</td>
               </tr>
             {% endfor %}
           </tbody>

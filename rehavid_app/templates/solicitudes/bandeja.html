@@ -28,11 +28,11 @@
           <th>Código</th>
           <th>Solicitante</th>
           <th>Servicio</th>
-          <th>Ciudad</th>
-          <th class="tar">Personas</th>
+          <th class="col-secundaria">Ciudad</th>
+          <th class="tar col-secundaria">Personas</th>
           <th>Fecha sugerida</th>
-          <th>Días</th>
-          <th>Recibida</th>
+          <th class="col-secundaria">Días</th>
+          <th class="col-secundaria">Recibida</th>
           <th>Estado</th>
           <th>Acciones</th>
         </tr>
@@ -43,6 +43,7 @@
             <td>
               <span class="code">{{ s.codigo }}</span>
               {% if s.urgente %}<div><span class="chip cancelada">&gt;12 h sin atender</span></div>{% endif %}
+              <div class="small muted solo-movil">recibida {{ s.creada_en|date:"d M H:i" }}</div>
             </td>
             <td>
               {{ s.solicitante.name|default:s.solicitante.email }}
@@ -51,12 +52,16 @@
             <td>
               {{ s.servicio.nombre }}
               {% if s.prof_perfil %}<div class="small muted">Prof.: {{ s.prof_cantidad }} · {{ s.prof_perfil }}</div>{% endif %}
+              <div class="small muted solo-movil">{{ s.ciudad.nombre }} · {{ s.personas }} persona{{ s.personas|pluralize }}</div>
             </td>
-            <td>{{ s.ciudad.nombre }}</td>
-            <td class="tar">{{ s.personas }}</td>
-            <td>{{ s.fecha_sugerida|date:"d M Y" }}</td>
-            <td>{{ s.dias_estimados }}</td>
-            <td>{{ s.creada_en|date:"d M H:i" }}</td>
+            <td class="col-secundaria">{{ s.ciudad.nombre }}</td>
+            <td class="tar col-secundaria">{{ s.personas }}</td>
+            <td>
+              {{ s.fecha_sugerida|date:"d M Y" }}
+              <div class="small muted solo-movil">{{ s.dias_estimados }} día{{ s.dias_estimados|pluralize }}</div>
+            </td>
+            <td class="col-secundaria">{{ s.dias_estimados }}</td>
+            <td class="col-secundaria">{{ s.creada_en|date:"d M H:i" }}</td>
             <td><span class="chip {{ s.estado }}">{{ s.get_estado_display }}</span></td>
             <td>
               {% if s.estado == "pendiente" %}

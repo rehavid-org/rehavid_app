@@ -79,11 +79,11 @@
       <thead>
         <tr>
           <th>Código</th>
-          <th>Área</th>
+          <th class="col-secundaria">Área</th>
           <th>Plan</th>
-          <th>Responsable</th>
-          <th>Vence</th>
-          <th style="min-width:160px">Avance vs esperado</th>
+          <th class="col-secundaria">Responsable</th>
+          <th class="col-secundaria">Vence</th>
+          <th class="tabla-r-avance">Avance vs esperado</th>
           <th>Estado</th>
           {% if request.user.nivel <= 2 %}<th>Acciones</th>{% endif %}
         </tr>
@@ -92,13 +92,14 @@
         {% for p in planes %}
           <tr>
             <td><span class="code">{{ p.codigo }}</span></td>
-            <td>{{ p.area }}</td>
+            <td class="col-secundaria">{{ p.area }}</td>
             <td>
               {{ p.titulo }}
               {% if p.descripcion %}<div class="small muted">{{ p.descripcion|truncatechars:90 }}</div>{% endif %}
+              <div class="small muted solo-movil">{{ p.area }} · {{ p.responsable }} · vence {{ p.vence|date:"d M Y" }}</div>
             </td>
-            <td>{{ p.responsable }}</td>
-            <td>{{ p.vence|date:"d M Y" }}</td>
+            <td class="col-secundaria">{{ p.responsable }}</td>
+            <td class="col-secundaria">{{ p.vence|date:"d M Y" }}</td>
             <td>
               <div style="background:var(--paper-3);height:8px;position:relative">
                 <div style="width:{{ p.esperado }}%;background:var(--line-2);height:8px;position:absolute"></div>

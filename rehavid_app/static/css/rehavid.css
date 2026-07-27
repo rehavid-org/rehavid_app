@@ -76,7 +76,7 @@ aside.sidebar {
   color: var(--paper);
   display: flex;
   flex-direction: column;
-  z-index: 100;
+  z-index: 200;
 }
 
 .sidebar .brand {
@@ -271,6 +271,23 @@ table.tabla-r { width: 100%; border-collapse: collapse; font-size: 12.5px; }
 .tabla-r td { padding: 9px 12px; border-bottom: 1px solid var(--line-3); vertical-align: middle; }
 .tabla-r tbody tr:hover { background: var(--paper-3); }
 .tabla-r td .code { font-family: "Outfit Mono", "Courier New", monospace; font-size: 11.5px; color: var(--ink-2); }
+.tabla-r-fecha { white-space: nowrap; }
+.tabla-r-avance { min-width: 160px; }
+
+/* Columnas secundarias de una tabla: se ocultan en móvil (su dato se pliega
+   como línea muted bajo una columna vecina, marcada con .solo-movil). */
+.solo-movil { display: none; }
+@media (max-width: 860px) {
+  .tabla-r .col-secundaria { display: none; }
+  .solo-movil { display: block; }
+  .tabla-r td .flex { flex-wrap: wrap; }
+  .tabla-r td, .tabla-r th { padding: 7px 7px; }
+  .tabla-r .chip { white-space: normal; }
+  .tabla-r-fecha { white-space: normal; }
+  .tabla-r-avance { min-width: 0; width: 120px; }
+  .tabla-r td { overflow-wrap: anywhere; }
+  .tabla-r th { white-space: normal; }
+}
 
 /* ── Chips de estado ────────────────────────────────────── */
 .chip {
@@ -429,6 +446,14 @@ table.tabla-r { width: 100%; border-collapse: collapse; font-size: 12.5px; }
 .equipo-card.tumeke {
   background: linear-gradient(135deg, #f0ebfd 0%, #fafafb 100%);
   border: 1.5px dashed var(--brand-light);
+}
+
+/* Cuando tarjetas y tabla listan el mismo inventario, cada una es la vista de un
+   solo rango (tarjetas en móvil, tabla en escritorio) para no duplicar el listado. */
+.equipos-grid--responsive { display: none; }
+@media (max-width: 860px) {
+  .equipos-grid--responsive { display: grid; }
+  .tabla-wrap--responsive { display: none; }
 }
 
 /* ── Paquetes tri-estado ────────────────────────────────── */

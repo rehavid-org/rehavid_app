@@ -62,31 +62,37 @@
       <thead>
         <tr>
           <th>Usuario</th>
-          <th>Correo</th>
+          <th class="col-secundaria">Correo</th>
           <th>Nivel</th>
-          <th>Empresa</th>
-          <th>Rol</th>
-          <th>Módulos</th>
+          <th class="col-secundaria">Empresa</th>
+          <th class="col-secundaria">Rol</th>
+          <th class="col-secundaria">Módulos</th>
           <th>Estado</th>
-          <th>Último acceso</th>
+          <th class="col-secundaria">Último acceso</th>
           <th>Acciones</th>
         </tr>
       </thead>
       <tbody>
         {% for u in usuarios %}
           <tr>
-            <td><strong>{{ u.name|default:u.username }}</strong></td>
-            <td class="small">{{ u.email }}</td>
+            <td>
+              <strong>{{ u.name|default:u.username }}</strong>
+              <div class="small muted solo-movil">
+                {{ u.email }} · {{ u.empresa.nombre|default:"sin empresa" }}
+                {% if u.rol_descriptivo %} · {{ u.rol_descriptivo }}{% endif %}
+              </div>
+            </td>
+            <td class="small col-secundaria">{{ u.email }}</td>
             <td><span class="chip info">{{ u.nivel }} · {{ u.get_nivel_display }}</span></td>
-            <td>{{ u.empresa.nombre|default:"—" }}</td>
-            <td class="small">{{ u.rol_descriptivo|default:"—" }}</td>
-            <td class="small">
+            <td class="col-secundaria">{{ u.empresa.nombre|default:"—" }}</td>
+            <td class="small col-secundaria">{{ u.rol_descriptivo|default:"—" }}</td>
+            <td class="small col-secundaria">
               {% if u.modulos_permitidos %}{{ u.modulos_permitidos|length }} explícitos{% else %}todos su nivel{% endif %}
             </td>
             <td>
               {% if u.is_active %}<span class="chip ok">activo</span>{% else %}<span class="chip cancelada">inactivo</span>{% endif %}
             </td>
-            <td class="small">{{ u.last_login|date:"d M Y H:i"|default:"nunca" }}</td>
+            <td class="small col-secundaria">{{ u.last_login|date:"d M Y H:i"|default:"nunca" }}</td>
             <td>
               <div class="flex" style="gap:4px">
                 <a class="btn-r mini" href="{% url 'administracion:usuario_ficha' u.pk %}">Ficha</a>
@@ -123,12 +129,12 @@
           tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
           legend: { bottom: 0, textStyle: { color: INK3 } },
           series: [{
-            type: 'pie', radius: ['50%', '78%'],
+            type: 'pie', radius: ['42%', '64%'], center: ['50%', '38%'],
             data: porEmpresa.empresas.map((e, i) => ({
               name: e, value: porEmpresa.conteos[i],
               itemStyle: { color: paleta[i % paleta.length], borderColor: '#fff', borderWidth: 2 },
             })),
-            label: { color: INK3, formatter: '{b}: {c}' },
+            label: { show: false },
           }],
         });
       }

@@ -47,20 +47,23 @@
   <div class="tabla-wrap">
     <table class="tabla-r">
       <thead>
-        <tr><th>Fecha</th><th>Usuario</th><th>Acción</th><th>Módulo</th><th>Detalle</th><th>IP</th></tr>
+        <tr><th>Fecha</th><th>Usuario</th><th>Acción</th><th class="col-secundaria">Módulo</th><th>Detalle</th><th class="col-secundaria">IP</th></tr>
       </thead>
       <tbody>
         {% for e in eventos %}
           <tr>
-            <td style="white-space:nowrap">{{ e.timestamp|date:"d M Y H:i:s" }}</td>
+            <td class="tabla-r-fecha">{{ e.timestamp|date:"d M Y H:i:s" }}</td>
             <td>
               {{ e.user_nombre|default:e.user_email }}
               <div class="small muted">{{ e.user_email }}</div>
             </td>
-            <td><span class="code">{{ e.accion }}</span></td>
-            <td><span class="chip neutra">{{ e.modulo }}</span></td>
+            <td>
+              <span class="code">{{ e.accion }}</span>
+              <div class="small muted solo-movil"><span class="chip neutra">{{ e.modulo }}</span></div>
+            </td>
+            <td class="col-secundaria"><span class="chip neutra">{{ e.modulo }}</span></td>
             <td class="small">{{ e.detalle|truncatechars:110 }}</td>
-            <td class="small">{{ e.ip|default:"—" }}</td>
+            <td class="small col-secundaria">{{ e.ip|default:"—" }}</td>
           </tr>
         {% empty %}
           <tr>

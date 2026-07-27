@@ -15,12 +15,12 @@
         <tr>
           <th>Código</th>
           <th>Servicio</th>
-          <th>Ciudad</th>
-          <th class="tar">Personas</th>
+          <th class="col-secundaria">Ciudad</th>
+          <th class="tar col-secundaria">Personas</th>
           <th>Fecha sugerida</th>
-          <th>Días</th>
+          <th class="col-secundaria">Días</th>
           <th>Estado</th>
-          <th>Reserva</th>
+          <th class="col-secundaria">Reserva</th>
           <th>Acciones</th>
         </tr>
       </thead>
@@ -30,6 +30,9 @@
             <td>
               <span class="code">{{ s.codigo }}</span>
               {% if s.editada %}<div class="small muted">editada</div>{% endif %}
+              {% with reserva=s.reservas.all|first %}
+                {% if reserva %}<div class="small muted solo-movil">reserva {{ reserva.codigo }}</div>{% endif %}
+              {% endwith %}
             </td>
             <td>
               {{ s.servicio.nombre }}
@@ -38,18 +41,22 @@
                   {% for a in s.accesorios_solicitados.all %}{{ a.nombre }} ×{{ a.cantidad }}{% if not forloop.last %} · {% endif %}{% endfor %}
                 </div>
               {% endif %}
+              <div class="small muted solo-movil">{{ s.ciudad.nombre }} · {{ s.personas }} persona{{ s.personas|pluralize }}</div>
             </td>
-            <td>{{ s.ciudad.nombre }}</td>
-            <td class="tar">{{ s.personas }}</td>
-            <td>{{ s.fecha_sugerida|date:"d M Y" }}</td>
-            <td>{{ s.dias_estimados }}</td>
+            <td class="col-secundaria">{{ s.ciudad.nombre }}</td>
+            <td class="tar col-secundaria">{{ s.personas }}</td>
+            <td>
+              {{ s.fecha_sugerida|date:"d M Y" }}
+              <div class="small muted solo-movil">{{ s.dias_estimados }} día{{ s.dias_estimados|pluralize }}</div>
+            </td>
+            <td class="col-secundaria">{{ s.dias_estimados }}</td>
             <td>
               <span class="chip {{ s.estado_visual }}">{{ s.estado_visual_display }}</span>
               {% if s.estado == "cancelada" and s.motivo_cancelacion %}
                 <div class="small muted">{{ s.motivo_cancelacion|truncatechars:40 }}</div>
               {% endif %}
             </td>
-            <td>
+            <td class="col-secundaria">
               {% with reserva=s.reservas.all|first %}
                 {% if reserva %}<span class="code">{{ reserva.codigo }}</span>{% else %}<span class="muted">—</span>{% endif %}
               {% endwith %}

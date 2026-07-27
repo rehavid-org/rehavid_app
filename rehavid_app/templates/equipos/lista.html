@@ -69,7 +69,7 @@
     <button class="btn-r" type="submit">Filtrar</button>
   </form>
 
-  <div class="equipos-grid">
+  <div class="equipos-grid equipos-grid--responsive">
     {% for s in servicios_sin_stock %}
       <div class="equipo-card tumeke">
         <span class="codigo">SOFTWARE</span>
@@ -87,7 +87,29 @@
         <span class="meta">{{ e.servicio.nombre }} · {{ e.ciudad_base.nombre }} · {{ e.historial_uso }} usos</span>
         <div class="pie">
           <span class="chip {{ e.estado }}">{{ e.get_estado_display }}</span>
-          <button class="btn-r mini js-ficha" data-id="{{ e.pk }}">Ficha</button>
+          <div class="flex" style="gap:4px;flex-wrap:wrap">
+            <button class="btn-r mini js-ficha" data-id="{{ e.pk }}">Ficha</button>
+            {% if request.user.nivel <= 2 %}
+              {% if e.estado == "en_preparacion" %}
+                <button class="btn-r mini verde js-accion"
+                        data-modal="#modalListo"
+                        data-url="{% url 'equipos:listo' e.pk %}"
+                        data-codigo="{{ e.codigo }}">Listo</button>
+              {% endif %}
+              {% if e.estado != "de_baja" and e.estado != "en_mantenimiento" %}
+                <button class="btn-r mini js-accion"
+                        data-modal="#modalMantenimiento"
+                        data-url="{% url 'equipos:mantenimiento' e.pk %}"
+                        data-codigo="{{ e.codigo }}">Mantenimiento</button>
+              {% endif %}
+            {% endif %}
+            {% if request.user.nivel == 1 and e.estado != "de_baja" %}
+              <button class="btn-r mini peligro js-accion"
+                      data-modal="#modalBaja"
+                      data-url="{% url 'equipos:baja' e.pk %}"
+                      data-codigo="{{ e.codigo }}">Baja</button>
+            {% endif %}
+          </div>
         </div>
       </div>
     {% empty %}
@@ -97,7 +119,7 @@
     {% endfor %}
   </div>
 
-  <div class="tabla-wrap">
+  <div class="tabla-wrap tabla-wrap--responsive">
     <table class="tabla-r">
       <thead>
         <tr>

@@ -72,7 +72,7 @@
         </div>
 
         <div class="flex mt-2">
-          <button class="btn-r primario" type="submit">Crear reserva</button>
+          <button class="btn-r primario" type="submit" id="btn-crear-reserva">Crear reserva</button>
           <a class="btn-r" href="{% url 'reservas:lista' %}">Descartar</a>
         </div>
       </form>
@@ -97,6 +97,14 @@
       const detalle = document.getElementById('disp-detalle');
       const campoServicio = document.getElementById('campo-servicio');
       const campoPaquete = document.getElementById('campo-paquete');
+      const btnCrear = document.getElementById('btn-crear-reserva');
+
+      function bloquearEnvio(bloquear) {
+        btnCrear.disabled = bloquear;
+        btnCrear.title = bloquear
+          ? 'No hay disponibilidad para el servicio/paquete y fechas seleccionados'
+          : '';
+      }
 
       function tipo() {
         return form.querySelector('input[name="tipo"]:checked').value;
@@ -118,6 +126,7 @@
         detalle.textContent = '';
         if (!que || !salida || !retorno) {
           preview.textContent = 'Seleccione servicio o paquete y las dos fechas para ver la disponibilidad real del inventario.';
+          bloquearEnvio(false);
           return;
         }
         preview.textContent = 'Consultando disponibilidad…';
@@ -128,10 +137,12 @@
           const data = await res.json();
           if (!res.ok) {
             preview.textContent = data.detail || 'No fue posible consultar la disponibilidad.';
+            bloquearEnvio(false);
             return;
           }
           preview.classList.add(data.disponible ? 'ok' : 'no');
           preview.textContent = (data.disponible ? '✓ ' : '✕ ') + data.motivo;
+          bloquearEnvio(!data.disponible);
           if (data.detalle) {
             detalle.innerHTML = data.detalle
               .map((d) => `${d.disponible ? '✓' : '✕'} ${d.categoria}: ${d.motivo}`)
@@ -141,6 +152,7 @@
           }
         } catch (e) {
           preview.textContent = 'No fue posible consultar la disponibilidad.';
+          bloquearEnvio(false);
         }
       }
 

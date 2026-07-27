@@ -159,8 +159,17 @@ aside.sidebar {
 .sidebar footer .quien { min-width: 0; }
 .sidebar footer .quien .nombre { font-size: 12px; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sidebar footer .quien .rol { font-size: 10px; color: rgba(255, 255, 255, 0.45); }
-.sidebar footer a.salir { color: rgba(255, 255, 255, 0.5); font-size: 11px; margin-left: auto; }
-.sidebar footer a.salir:hover { color: var(--accent-green); }
+.sidebar footer .form-salir { margin-left: auto; }
+.sidebar footer .salir {
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: inherit;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 11px;
+  cursor: pointer;
+}
+.sidebar footer .salir:hover { color: var(--accent-green); }
 
 main.app-main {
   margin-left: var(--side);
@@ -332,6 +341,46 @@ table.tabla-r { width: 100%; border-collapse: collapse; font-size: 12.5px; }
   margin-bottom: 14px;
 }
 
+/* ── Choices.js (selects filtrables por nombre) ─────────── */
+.choices { font-size: 13px; margin-bottom: 0; }
+.choices__inner {
+  background: var(--paper);
+  border: 1px solid var(--line-2);
+  border-radius: var(--radius);
+  padding: 5.5px 24px 5.5px 10px;
+  min-height: unset;
+  font-family: inherit;
+}
+.choices.is-open .choices__inner, .choices.is-focused .choices__inner {
+  border-color: var(--brand);
+  box-shadow: 0 0 0 2px var(--brand-line);
+}
+.choices__list--single { padding: 2px 0; }
+.choices__list--single .choices__item { color: var(--ink); }
+.choices__placeholder { opacity: 1; color: var(--ink-6); }
+.choices[data-type*="select-one"] .choices__inner { padding-bottom: 5.5px; }
+.choices__list--dropdown, .choices__list[aria-expanded] {
+  background: var(--paper);
+  border-color: var(--line-2);
+  border-radius: var(--radius);
+  box-shadow: var(--sh-3);
+  z-index: 250;
+}
+.choices__list--dropdown .choices__input {
+  font-family: inherit;
+  font-size: 13px;
+  background: var(--paper-2);
+  border-bottom: 1px solid var(--line);
+}
+.choices__list--dropdown .choices__item {
+  font-size: 12.5px;
+  padding: 7px 10px;
+}
+.choices__list--dropdown .choices__item--selectable.is-highlighted {
+  background: var(--brand-soft);
+  color: var(--brand-dark);
+}
+
 /* ── Filtros de listas ──────────────────────────────────── */
 .filtros {
   display: flex;
@@ -467,14 +516,53 @@ a.cal-dia:hover { outline: 1px solid var(--brand-light); }
   .kpi-grid { grid-template-columns: repeat(2, 1fr); }
   .cal-anio { grid-template-columns: repeat(3, 1fr); }
 }
+.menu-toggle {
+  display: none;
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  z-index: 210;
+  width: 38px;
+  height: 38px;
+  border: none;
+  border-radius: var(--radius);
+  background: var(--brand-dark);
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  cursor: pointer;
+}
+.menu-toggle span { display: block; width: 18px; height: 2px; background: #fff; transition: transform 0.2s ease, opacity 0.2s ease; }
+.menu-toggle[aria-expanded="true"] span:nth-child(1) { transform: translateY(6px) rotate(45deg); }
+.menu-toggle[aria-expanded="true"] span:nth-child(2) { opacity: 0; }
+.menu-toggle[aria-expanded="true"] span:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
+
+.sidebar-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(31, 16, 66, 0.45);
+  z-index: 150;
+}
+.sidebar-backdrop.visible { display: block; }
+
 @media (max-width: 860px) {
-  aside.sidebar { position: static; width: 100%; height: auto; }
+  .menu-toggle { display: flex; }
+  aside.sidebar {
+    width: min(var(--side), 82vw);
+    height: 100vh;
+    transform: translateX(-100%);
+    transition: transform 0.2s ease;
+  }
+  aside.sidebar.abierto { transform: translateX(0); }
   .app-shell { flex-direction: column; }
-  main.app-main { margin-left: 0; padding: 0 16px 32px; }
+  main.app-main { margin-left: 0; padding: 64px 16px 32px; }
   .cal-anio { grid-template-columns: repeat(2, 1fr); }
   .form-grid { grid-template-columns: 1fr; }
   .login-brand { display: none; }
   .login-panel { width: 100%; }
+  body.menu-abierto { overflow: hidden; }
 }
 
 @media (prefers-reduced-motion: no-preference) {

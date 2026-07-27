@@ -17,6 +17,11 @@
           integrity="sha512-SbiR/eusphKoMVVXysTKG/7VseWii+Y3FdHrt0EpKgpToZeemhqHeZeLWLhJutz/2ut2Vw1uQEj2MbRF+TVBUA=="
           crossorigin="anonymous"
           referrerpolicy="no-referrer" />
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/choices.js@11.2.3/public/assets/styles/choices.min.css"
+          integrity="sha512-MuLTnLbXs/aqF4wUFd2JfuOjXCwL8sr2IxTa1/UleARtBs9wUo7BJxo3x9vYutyUBnK53F7pLecE0pf6nk8OXw=="
+          crossorigin="anonymous"
+          referrerpolicy="no-referrer" />
     <link href="{% static 'css/rehavid.css' %}" rel="stylesheet" />
     {% block css %}{% endblock css %}
     <script defer
@@ -24,10 +29,24 @@
             integrity="sha512-1/RvZTcCDEUjY/CypiMz+iqqtaoQfAITmNSJY17Myp4Ms5mdxPS5UV7iOfdZoxcGhzFbOm6sntTKJppjvuhg4g=="
             crossorigin="anonymous"
             referrerpolicy="no-referrer"></script>
+    <script defer
+            src="https://cdn.jsdelivr.net/npm/choices.js@11.2.3/public/assets/scripts/choices.min.js"
+            integrity="sha512-LQ1/xIowHlb06835gf7dfcQlZ3ulCr5HZNilGzWNHsvTKZm444W2k7gGQwG1I1sGV2j9EYHqpw9cvDzddvDfMA=="
+            crossorigin="anonymous"
+            referrerpolicy="no-referrer"></script>
   </head>
   <body class="rehavid">
     <div class="app-shell">
-      <aside class="sidebar">
+      <button type="button"
+              class="menu-toggle"
+              id="menu-toggle"
+              aria-label="Abrir menú"
+              aria-expanded="false"
+              aria-controls="sidebar-principal">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+      <aside class="sidebar" id="sidebar-principal">
         <div class="brand">
           <div class="glyph">R</div>
           <div>
@@ -57,7 +76,10 @@
             <div class="nombre">{{ request.user.name|default:request.user.email }}</div>
             <div class="rol">{{ request.user.rol_descriptivo|default:request.user.get_nivel_display }}</div>
           </div>
-          <a class="salir" href="{% url 'account_logout' %}">Salir</a>
+          <form method="post" action="{% url 'account_logout' %}" class="form-salir">
+            {% csrf_token %}
+            <button type="submit" class="salir">Salir</button>
+          </form>
         </footer>
       </aside>
       <main class="app-main">
@@ -93,6 +115,56 @@
       </script>
     {% endif %}
     {% block modal %}{% endblock modal %}
+    <script>
+      // Todo <select> queda filtrable por nombre (Choices.js)
+      window.addEventListener('DOMContentLoaded', () => {
+        if (typeof Choices === 'undefined') return;
+        document.querySelectorAll('select:not([data-no-choices])').forEach((el) => {
+          new Choices(el, {
+            searchEnabled: true,
+            shouldSort: false,
+            itemSelectText: '',
+            searchPlaceholderValue: 'Buscar…',
+            noResultsText: 'Sin resultados',
+            noChoicesText: 'No hay opciones',
+            allowHTML: false,
+          });
+        });
+      });
+    </script>
+    <script>
+      // Menú móvil off-canvas (evita que el sidebar tape el contenido en pantallas angostas)
+      window.addEventListener('DOMContentLoaded', () => {
+        const toggle = document.getElementById('menu-toggle');
+        const sidebar = document.getElementById('sidebar-principal');
+        const backdrop = document.getElementById('sidebar-backdrop');
+        if (!toggle || !sidebar || !backdrop) return;
+
+        function abrirMenu() {
+          sidebar.classList.add('abierto');
+          backdrop.classList.add('visible');
+          toggle.setAttribute('aria-expanded', 'true');
+          toggle.setAttribute('aria-label', 'Cerrar menú');
+          document.body.classList.add('menu-abierto');
+        }
+        function cerrarMenu() {
+          sidebar.classList.remove('abierto');
+          backdrop.classList.remove('visible');
+          toggle.setAttribute('aria-expanded', 'false');
+          toggle.setAttribute('aria-label', 'Abrir menú');
+          document.body.classList.remove('menu-abierto');
+        }
+
+        toggle.addEventListener('click', () => {
+          sidebar.classList.contains('abierto') ? cerrarMenu() : abrirMenu();
+        });
+        backdrop.addEventListener('click', cerrarMenu);
+        sidebar.querySelectorAll('a.menu-item').forEach((a) => a.addEventListener('click', cerrarMenu));
+        document.addEventListener('keydown', (e) => {
+          if (e.key === 'Escape') cerrarMenu();
+        });
+      });
+    </script>
     <script>
       // O17 · badge de solicitudes pendientes en el menú del operador
       window.addEventListener('DOMContentLoaded', () => {

@@ -1,0 +1,121 @@
+/* ============================================================
+   REHAVID · Guía interactiva contextual (tour de sección)
+   Coherente con rehavid.css: mismos tokens de marca/tipografía.
+   ============================================================ */
+
+.tour-spot {
+  position: fixed;
+  pointer-events: none;
+  border-radius: var(--radius);
+  box-shadow: 0 0 0 4000px rgba(31, 16, 66, 0.6), 0 0 0 2px var(--accent-green);
+  transition: top 0.25s ease, left 0.25s ease, width 0.25s ease, height 0.25s ease;
+  z-index: 2000;
+}
+
+.tour-card {
+  position: fixed;
+  z-index: 2001;
+  width: 320px;
+  max-width: calc(100vw - 24px);
+  background: var(--paper);
+  border: 1px solid var(--line-2);
+  border-top: 3px solid var(--brand);
+  border-radius: var(--radius);
+  box-shadow: var(--sh-3);
+  padding: 16px 34px 14px 18px;
+  font-family: Outfit, Arial, -apple-system, sans-serif;
+}
+
+.tour-card .tour-paso {
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-4);
+}
+
+.tour-card .tour-titulo {
+  margin: 4px 0 6px;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.tour-card .tour-texto {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--ink-3);
+}
+
+.tour-cerrar {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 24px;
+  height: 24px;
+  border: 0;
+  background: none;
+  color: var(--ink-4);
+  font-size: 17px;
+  line-height: 1;
+  cursor: pointer;
+}
+.tour-cerrar:hover { color: var(--brand); }
+.tour-cerrar:focus-visible { outline: 2px solid var(--brand); outline-offset: 1px; }
+
+.tour-pie {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.tour-puntos { display: flex; gap: 5px; }
+.tour-punto { width: 6px; height: 6px; border-radius: 50%; background: var(--line-2); }
+.tour-punto.activo { background: var(--brand); }
+
+.tour-nav { display: flex; gap: 6px; }
+.tour-nav .tour-atras:disabled { opacity: 0.35; cursor: default; }
+
+.tour-card--hoja {
+  top: auto !important;
+  bottom: 0;
+  left: 0 !important;
+  right: 0;
+  width: 100%;
+  max-width: 100%;
+  border-left: none;
+  border-right: none;
+  border-bottom: none;
+  box-shadow: 0 -6px 20px rgba(31, 16, 66, 0.18);
+  padding-bottom: calc(14px + env(safe-area-inset-bottom));
+}
+
+.tour-fab {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 190;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: none;
+  background: var(--brand);
+  color: #fff;
+  font-family: Outfit, Arial, -apple-system, sans-serif;
+  font-size: 17px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: var(--sh-3);
+}
+.tour-fab:hover { background: var(--brand-dark); }
+.tour-fab:focus-visible { outline: 2px solid var(--accent-green); outline-offset: 2px; }
+
+@media (max-width: 860px) {
+  .tour-fab { right: 12px; bottom: 12px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tour-spot { transition: none; }
+}

@@ -28,8 +28,38 @@
       </div>
     {% endfor %}
   </div>
-  <p class="small muted mt-2">
+  <p class="small muted mt-2" id="portal-equipos-nota">
     La disponibilidad definitiva se valida al atender su solicitud. La fecha "libre desde"
     es la primera con stock para un servicio de 1 día.
   </p>
 {% endblock content %}
+
+{% block inline_javascript %}
+  <script>
+    window.addEventListener('DOMContentLoaded', () => {
+      if (window.RehavidTour) {
+        RehavidTour.init({
+          id: 'portal-equipos',
+          userKey: '{{ request.user.pk }}',
+          steps: [
+            {
+              selector: '.equipos-grid',
+              title: 'Equipos y servicios disponibles',
+              text: 'Cada tarjeta es un servicio de medición. Vea si hay unidades libres hoy o desde qué fecha se liberan.',
+            },
+            {
+              selector: '#portal-equipos-nota',
+              title: 'Disponibilidad orientativa',
+              text: 'Esta disponibilidad es una referencia; se confirma en firme cuando un operador atienda su solicitud.',
+            },
+            {
+              selector: '.page-head .acciones',
+              title: 'Solicitar un servicio',
+              text: 'Cuando encuentre lo que necesita, haga clic aquí para iniciar su solicitud.',
+            },
+          ],
+        });
+      }
+    });
+  </script>
+{% endblock inline_javascript %}

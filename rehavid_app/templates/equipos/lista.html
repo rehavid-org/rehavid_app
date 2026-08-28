@@ -367,6 +367,40 @@
           }
         });
       });
+
+      if (window.RehavidTour) {
+        RehavidTour.init({
+          id: 'equipos-lista',
+          userKey: '{{ request.user.pk }}',
+          steps: [
+            {
+              selector: '.page-head .acciones',
+              title: 'Exportar, importar o agregar',
+              text: 'Desde aquí exporta el inventario a Excel, descarga la plantilla de importación masiva o registra un equipo nuevo.',
+            },
+            {
+              selector: '.kpi-grid',
+              title: 'Resumen del inventario',
+              text: 'Estos indicadores muestran cuántas unidades están disponibles, en uso, en preparación y cuántos servicios de software no requieren equipo físico.',
+            },
+            {
+              selector: '.filtros',
+              title: 'Buscar equipos',
+              text: 'Filtre por código, serial o modelo, y por categoría o estado del equipo.',
+            },
+            {
+              selector: '.equipos-grid',
+              title: 'Tarjetas de equipo',
+              text: 'El color del estado indica si está disponible, en uso o en preparación. Use "Ficha" para ver el detalle y, según su nivel, "Listo" o "Mantenimiento" para cambiar su estado.',
+            },
+            {
+              selector: '.tabla-wrap',
+              title: 'Vista de tabla',
+              text: 'La misma información en formato compacto, útil para revisar muchos equipos a la vez.',
+            },
+          ],
+        });
+      }
     });
   </script>
 {% endblock inline_javascript %}

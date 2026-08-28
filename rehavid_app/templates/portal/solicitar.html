@@ -56,7 +56,7 @@
         <div id="accesorios" class="small muted">Seleccione un servicio para ver sus accesorios típicos.</div>
 
         <p class="card-titulo mt-2">Profesional requerido</p>
-        <div class="form-grid">
+        <div class="form-grid" id="grid-profesional">
           <div class="campo">
             <label for="{{ form.prof_cantidad.id_for_label }}">Cantidad</label>
             {{ form.prof_cantidad }}
@@ -87,7 +87,7 @@
         </div>
 
         <div class="flex mt-2">
-          <button class="btn-r primario" type="submit">Enviar solicitud</button>
+          <button class="btn-r primario" type="submit" id="btn-enviar-solicitud">Enviar solicitud</button>
           <a class="btn-r" href="{% url 'portal:inicio' %}">Descartar</a>
         </div>
       </form>
@@ -167,6 +167,45 @@
       form.querySelector('[name="fecha_sugerida"]').addEventListener('change', saturacion);
       form.querySelector('[name="dias_estimados"]').addEventListener('change', saturacion);
       pintarAccesorios();
+
+      if (window.RehavidTour) {
+        RehavidTour.init({
+          id: 'portal-solicitar',
+          userKey: '{{ request.user.pk }}',
+          steps: [
+            {
+              selector: '#form-solicitud',
+              title: 'Solicitar un servicio',
+              text: 'Complete este formulario para pedir un servicio. Un operador la revisará y, al atenderla, se crea la reserva de equipos.',
+            },
+            {
+              selector: '.form-grid',
+              title: 'Servicio, ciudad y fechas',
+              text: 'Indique el servicio requerido, la ciudad, la empresa, cuántas personas se evaluarán y la fecha sugerida (mínimo 7 días desde hoy).',
+            },
+            {
+              selector: '#accesorios',
+              title: 'Accesorios del servicio',
+              text: 'Si el servicio elegido tiene accesorios configurables, aquí puede ajustar las cantidades que necesita.',
+            },
+            {
+              selector: '#grid-profesional',
+              title: 'Profesional que aplicará el servicio',
+              text: 'El perfil del profesional es obligatorio; los demás datos de contacto son opcionales.',
+            },
+            {
+              selector: '#disp-preview',
+              title: 'Qué tan copada está la agenda',
+              text: 'Este panel muestra si hay saturación de equipos para el servicio y la fecha elegidos, antes de enviar la solicitud.',
+            },
+            {
+              selector: '#btn-enviar-solicitud',
+              title: 'Enviar la solicitud',
+              text: 'Al enviarla queda pendiente hasta que un operador la atienda; puede seguir su estado en "Mis solicitudes".',
+            },
+          ],
+        });
+      }
     });
   </script>
 {% endblock inline_javascript %}

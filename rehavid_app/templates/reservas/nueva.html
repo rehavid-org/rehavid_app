@@ -16,7 +16,7 @@
           <div class="errores-form">{{ form.non_field_errors }}</div>
         {% endif %}
         <p class="card-titulo">Qué se reserva</p>
-        <div class="campo">
+        <div class="campo" id="campo-tipo">
           <div class="flex">
             {% for radio in form.tipo %}
               <label class="flex" style="text-transform:none;letter-spacing:0;font-size:12.5px;gap:5px">
@@ -161,6 +161,35 @@
         form.querySelector(`[name="${n}"]`).addEventListener('change', consultar);
       });
       alternarTipo();
+
+      if (window.RehavidTour) {
+        RehavidTour.init({
+          id: 'reservas-nueva',
+          userKey: '{{ request.user.pk }}',
+          steps: [
+            {
+              selector: '#campo-tipo',
+              title: 'Servicio o paquete',
+              text: 'Elija si va a reservar un servicio individual o un paquete con varios equipos; el formulario cambia según su elección.',
+            },
+            {
+              selector: '#form-reserva',
+              title: 'Datos del cliente y fechas',
+              text: 'Complete la empresa cliente, la ciudad, cuántas personas se evaluarán y las fechas de salida y retorno esperado.',
+            },
+            {
+              selector: '#disp-preview',
+              title: 'Disponibilidad en vivo',
+              text: 'En cuanto tenga servicio/paquete y las dos fechas, este panel consulta el inventario real y le dice si hay equipos libres.',
+            },
+            {
+              selector: '#btn-crear-reserva',
+              title: 'Crear la reserva',
+              text: 'El botón solo se habilita cuando hay disponibilidad confirmada para lo que seleccionó.',
+            },
+          ],
+        });
+      }
     });
   </script>
 {% endblock inline_javascript %}

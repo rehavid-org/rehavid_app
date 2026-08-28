@@ -4,8 +4,8 @@
 {% block miga %}Operación · Reservas{% endblock miga %}
 {% block titulo %}Reservas{% endblock titulo %}
 {% block acciones %}
-  <a class="btn-r" href="{% url 'reservas:export' %}?{{ filtros.urlencode }}">Exportar Excel</a>
-  <a class="btn-r primario" href="{% url 'reservas:nueva' %}">+ Nueva reserva</a>
+  <a class="btn-r" id="btn-exportar-reservas" href="{% url 'reservas:export' %}?{{ filtros.urlencode }}">Exportar Excel</a>
+  <a class="btn-r primario" id="btn-nueva-reserva" href="{% url 'reservas:nueva' %}">+ Nueva reserva</a>
 {% endblock acciones %}
 
 {% block content %}
@@ -251,6 +251,35 @@
           bootstrap.Modal.getOrCreateInstance(modal).show();
         });
       });
+
+      if (window.RehavidTour) {
+        RehavidTour.init({
+          id: 'reservas-lista',
+          userKey: '{{ request.user.pk }}',
+          steps: [
+            {
+              selector: '.filtros',
+              title: 'Filtra las reservas',
+              text: 'Busque por código o cliente, y refine por servicio, ciudad, estado o rango de fechas de salida.',
+            },
+            {
+              selector: '#btn-nueva-reserva',
+              title: 'Crear una reserva',
+              text: 'Desde aquí inicia una reserva nueva de un servicio individual o de un paquete de varios equipos.',
+            },
+            {
+              selector: '#btn-exportar-reservas',
+              title: 'Exportar a Excel',
+              text: 'Descargue en Excel el listado con los filtros que tenga aplicados en este momento.',
+            },
+            {
+              selector: '.tabla-wrap',
+              title: 'Estado y acciones de cada reserva',
+              text: 'Cada fila indica si la reserva está activa, retornada o cancelada. En las reservas activas encontrará botones para reprogramar, confirmar el retorno o cancelar.',
+            },
+          ],
+        });
+      }
     });
   </script>
 {% endblock inline_javascript %}

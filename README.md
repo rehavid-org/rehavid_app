@@ -22,8 +22,9 @@ Migración del prototipo FastAPI + HTML monolítico a una app Django modular.
 Docker Compose (Caddy + Django + Celery + Postgres + Redis). CI/CD vía GitHub Actions
 (push a `main` → tests → deploy).
 
-- URL actual (DNS temporal): <https://rehavid.20-119-43-198.nip.io/>
-- Dominio definitivo (pendiente DNS del cliente): `https://operaciones.rehavid.com.co/`
+- URL de producción: <https://rehavidapps.com.co/>
+- Alias público: <https://www.rehavidapps.com.co/>
+- URL temporal de contingencia: <https://rehavid.20-119-43-198.nip.io/>
 
 ## Comandos básicos
 

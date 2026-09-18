@@ -200,7 +200,7 @@ en vivo (descarga real + `openpyxl.load_workbook` sobre el archivo recibido, no 
 - Scripts `compose/production/django/{entrypoint,start,celery/worker/start,celery/beat/start}`: entrypoint espera BD con psycopg (sin wait-for-it), start corre `migrate` + `collectstatic` + gunicorn.
 - `docker-compose.production.yml` (staging local: django+postgres+redis+celeryworker+celerybeat) + plantillas `.envs/.production_example/` (los reales van en `.envs/.production/`, git-ignored).
 - `config/views.py::health` → `/health/` con chequeo de BD (lo usan Docker y el probe de App Service).
-- `config/settings/production.py`: ALLOWED_HOSTS default `operaciones.rehavid.com.co`; STORAGES condicional (con `DJANGO_AZURE_ACCOUNT_NAME` → Blob; sin ella → **whitenoise**, dependencia agregada, para staging local); Application Insights opcional por `APPLICATIONINSIGHTS_CONNECTION_STRING` (guard de import).
+- `config/settings/production.py`: ALLOWED_HOSTS default `rehavidapps.com.co` + `www`; STORAGES condicional (con `DJANGO_AZURE_ACCOUNT_NAME` → Blob; sin ella → **whitenoise**, dependencia agregada, para staging local); Application Insights opcional por `APPLICATIONINSIGHTS_CONNECTION_STRING` (guard de import).
 - `.github/workflows/deploy.yml`: tags `v*` → tests (postgres 16 en CI) → build+push a ACR → deploy App Service (django + worker/beat opcionales) → espera 200 de `/health/`.
 - `docs/DESPLIEGUE_AZURE.md`: guía completa az CLI adaptada de la del prototipo (RG, ACR, PG Flexible, Redis, Blob, Key Vault, App Services, SSO Entra, dominio, App Insights, Azure ML).
 - Fix también en `compose/local/django/Dockerfile`: `gcc` → `build-essential` (psycopg-c no compilaba: faltaba `assert.h`/libc6-dev).
@@ -228,10 +228,17 @@ El plan anterior de App Service queda **superseded** (ver nota en DESPLIEGUE_AZU
 3. ~~Verificar celeryworker/celerybeat del compose de producción~~ **RESUELTO**: corren en la VM de producción vía `docker-compose.vm.yml` (celeryworker + celerybeat).
 4. ✅ **Build de la imagen local y `up` full-docker — VERIFICADO (2026-07-15)**: `docker compose -f docker-compose.local.yml build django` compiló OK (fix `build-essential` confirmado, psycopg-c compila sin problema); `up -d` levantó los 6 servicios (postgres, redis, mailpit, django, celeryworker, celerybeat); datos del seed ya presentes en el volumen persistente; login real por email (`jhon.orrego@rehavid.com.co`) → 302 → `/reservas/` → 200. Full-docker local queda validado de punta a punta.
 5. ~~Re-correr `pytest`~~ **RESUELTO**: pytest corre verde en CI (GitHub Actions, `ci.yml`) contra postgres:16 — primer run verde 2026-07-17.
-6. ~~Cargar secrets en GitHub y probar el workflow deploy.yml contra Azure~~ **RESUELTO**: secrets `VM_SSH_KEY`, `VM_HOST`, `VM_USER` cargados en GitHub; `deploy.yml` disparado desde `main` en verde; health check externo pasa. La app está LIVE en <https://rehavid.20-119-43-198.nip.io/>.
+6. ~~Cargar secrets en GitHub y probar el workflow deploy.yml contra Azure~~ **RESUELTO**: secrets `VM_SSH_KEY`, `VM_HOST`, `VM_USER` cargados en GitHub; `deploy.yml` disparado desde `main` en verde; health check externo pasa. La app está LIVE en <https://rehavidapps.com.co/> (alias `www` y fallback nip.io disponibles).
 
 ## 🔶 Fase 8 · Verificación integral — PARCIAL
-Checklist funcional completo en sección 5 de `PLAN_MIGRACION.md`. El build de la imagen Docker local y `docker compose up` completo ya se verificaron (ver Fase 7, punto 4). CI/CD con deploy automático en push-to-main (GitHub Actions), primer run verde 2026-07-17 — pytest corre contra postgres:16 en CI, ruff limpio. Backups diarios verificados en la VM de producción. Tests e2e de fases 6-7 siguen pospuestos por decisión del usuario. Pendiente: QA integral con el equipo Rehavid y go-live formal con dominio definitivo.
+Checklist funcional completo en sección 5 de `PLAN_MIGRACION.md`. El build de la imagen Docker local y `docker compose up` completo ya se verificaron (ver Fase 7, punto 4). CI/CD con deploy automático en push-to-main (GitHub Actions), primer run verde 2026-07-17 — pytest corre contra postgres:16 en CI, ruff limpio. Backups diarios verificados en la VM de producción. Tests e2e de fases 6-7 siguen pospuestos por decisión del usuario. Pendiente: QA integral con el equipo Rehavid y go-live formal.
+
+### Actualización 2026-09-18 · Dominio de producción
+
+- DNS GoDaddy verificado: `@` → `20.119.43.198` y `www` → `rehavidapps.com.co.`.
+- Caddy remoto sincronizado con `rehavidapps.com.co` y `www.rehavidapps.com.co`.
+- Let's Encrypt emitió certificados de producción para ambos hostnames.
+- Verificación externa: `/health/` devuelve HTTP 200 y la raíz de la aplicación devuelve el redirect esperado.
 
 ---
 
@@ -286,7 +293,8 @@ Para deploy manual o debugging en la VM:
 ssh rehavid@<vm-ip>
 cd /opt/rehavid/rehavid_app
 docker compose -f docker-compose.vm.yml up -d --build
-# health check: curl https://rehavid.20-119-43-198.nip.io/health/
+# health check producción: curl https://rehavidapps.com.co/health/
+# fallback temporal:        curl https://rehavid.20-119-43-198.nip.io/health/
 ```
 
 Ver `docs/DESPLIEGUE_AZURE.md` para el detalle completo de la infraestructura.
@@ -306,8 +314,8 @@ Aterrizaje post-login por nivel: 1-2 → `/reservas/` · 3 → `/analitica/calen
 
 - **Producción LIVE**: single Azure VM (Ubuntu 24.04 LTS, Standard_D2as_v7, eastus) con
   Docker Compose (Caddy + Django + Celery worker/beat + Postgres 16 + Redis 7). URL
-  temporal: <https://rehavid.20-119-43-198.nip.io/>. Dominio definitivo pendiente de
-  DNS del cliente: `operaciones.rehavid.com.co`.
+  de producción: <https://rehavidapps.com.co/>; alias: <https://www.rehavidapps.com.co/>.
+  Fallback temporal: <https://rehavid.20-119-43-198.nip.io/>.
 - **CI/CD**: GitHub Actions con deploy automático en push a `main` (`deploy.yml`).
   Primer run verde 2026-07-17. Secrets: `VM_SSH_KEY`, `VM_HOST`, `VM_USER`.
   CI (`ci.yml`: ruff + pytest contra postgres:16) también corre en cada push.
@@ -322,5 +330,5 @@ Aterrizaje post-login por nivel: 1-2 → `/reservas/` · 3 → `/analitica/calen
   antes de go-live formal.
 - Documentación de contexto completo: `CLAUDE.md` (mapa operativo), `docs/ARQUITECTURA.md`
   (mapa exhaustivo de la app), `docs/DESPLIEGUE_AZURE.md` (infra).
-- **Próximo trabajo**: dominio definitivo (DNS del cliente), rotación de passwords del
-  seed, QA integral con equipo Rehavid (Fase 8).
+- **Próximo trabajo**: rotación de passwords del seed y QA integral con equipo Rehavid
+  (Fase 8). El dominio de producción y HTTPS ya están verificados.

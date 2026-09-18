@@ -45,7 +45,7 @@ docker compose -f "${COMPOSE_FILE}" exec -T django python manage.py collectstati
 log "=== Deploy complete ==="
 log ""
 log "Health check:  curl http://<vm-ip>/health/"
-log "DNS:           Apuntar operaciones.rehavid.com.co -> <vm-ip>"
+log "DNS:           Apuntar rehavidapps.com.co -> <vm-ip>"
 log "               Caddy emitira el certificado Let's Encrypt cuando el DNS resuelva."
 log ""
 docker compose -f "${COMPOSE_FILE}" ps

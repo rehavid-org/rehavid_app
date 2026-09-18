@@ -5,11 +5,11 @@
 DJANGO_SETTINGS_MODULE=config.settings.production
 DJANGO_SECRET_KEY=change-me
 DJANGO_ADMIN_URL=admin-rehavid/
-DJANGO_ALLOWED_HOSTS=operaciones.rehavid.com.co,localhost,127.0.0.1
+DJANGO_ALLOWED_HOSTS=rehavidapps.com.co,www.rehavidapps.com.co,localhost,127.0.0.1
 
 # Seguridad
 DJANGO_SECURE_SSL_REDIRECT=True
-DJANGO_CSRF_TRUSTED_ORIGINS=https://operaciones.rehavid.com.co
+DJANGO_CSRF_TRUSTED_ORIGINS=https://rehavidapps.com.co,https://www.rehavidapps.com.co
 
 # Redis / Celery (hostname interno del compose)
 REDIS_URL=redis://redis:6379/0

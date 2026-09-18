@@ -1,6 +1,6 @@
 # Reverse proxy con auto-TLS (Let's Encrypt) para REHAVID Operaciones.
 # Caddy emite y renueva el certificado automáticamente una vez que el DNS
-# de operaciones.rehavid.com.co apunte a la IP pública de la VM.
+# de rehavidapps.com.co apunte a la IP pública de la VM.
 
 {
 	# Fuerza Let's Encrypt PRODUCCIÓN (evita el endpoint staging, cuyos certs
@@ -8,7 +8,7 @@
 	acme_ca https://acme-v02.api.letsencrypt.org/directory
 }
 
-operaciones.rehavid.com.co, rehavid.20-119-43-198.nip.io {
+rehavidapps.com.co, www.rehavidapps.com.co, rehavid.20-119-43-198.nip.io {
 	encode gzip zstd
 
 	reverse_proxy django:5000 {

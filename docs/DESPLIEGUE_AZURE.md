@@ -32,7 +32,7 @@ bash scripts/deploy-vm.sh
 # 3. Apuntar DNS y verificar
 curl http://<vm-ip>/health/           # pre-DNS (HTTP plano)
 # Tras propagar DNS:
-curl https://operaciones.rehavid.com.co/health/
+curl https://rehavidapps.com.co/health/
 ```
 
 ## Provision con az CLI
@@ -137,15 +137,21 @@ docker compose -f docker-compose.vm.yml exec -T postgres \
 
 ## DNS + SSL
 
-1. Crear registro DNS: `operaciones.rehavid.com.co` → CNAME o A → IP publica de la VM.
-2. Caddy detecta el dominio y emite el certificado Let's Encrypt automaticamente.
-3. **Antes de que el DNS propague**, se puede verificar via `http://<vm-ip>/health/`.
-4. Una vez el DNS resuelve, `https://operaciones.rehavid.com.co` funciona con TLS.
+Configuración vigente para `rehavidapps.com.co` en GoDaddy:
+
+1. Registro A: `@` → `20.119.43.198` (TTL 3600).
+2. Registro CNAME: `www` → `rehavidapps.com.co.` (TTL 3600).
+3. Caddy detecta ambos hostnames y emite certificados Let's Encrypt de producción.
+4. Verificar: `curl https://rehavidapps.com.co/health/` debe devolver `{"status":"ok"}`.
+
+Si Website Builder/parking mantiene un A inmutable (`WebsiteBuilder Site`), primero hay
+que desconectar el dominio de ese producto en GoDaddy; `gddy dns` no puede reemplazar un
+registro administrado por el producto.
 
 ## SSO Microsoft Entra ID
 
 1. App registration `rehavid-sso` (single tenant).
-2. Redirect URI: `https://operaciones.rehavid.com.co/accounts/microsoft/login/callback/`.
+2. Redirect URI: `https://rehavidapps.com.co/accounts/microsoft/login/callback/`.
 3. Setear en `.envs/.production/.django`: `AZURE_SSO_CLIENT_ID`, `AZURE_SSO_CLIENT_SECRET`, `AZURE_SSO_TENANT_ID`.
 4. Reiniciar: `docker compose -f docker-compose.vm.yml restart django`.
 

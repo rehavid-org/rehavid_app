@@ -1,7 +1,7 @@
 # REHAVID Operaciones · Mapa de la aplicación
 
-> Documento de contexto completo. Actualizado: 2026-07-17 (deploy single-VM + CI/CD en
-> producción; fases 0-6 completas). Cómo levantar todo: `ESTADO_MIGRACION.md`;
+> Documento de contexto completo. Actualizado: 2026-09-18 (dominio propio conectado y
+> HTTPS verificado en producción; deploy single-VM + CI/CD). Cómo levantar todo: `ESTADO_MIGRACION.md`;
 > guía de infra: `docs/DESPLIEGUE_AZURE.md`.
 
 ## 1 · Dominio en una frase
@@ -182,7 +182,7 @@ Swagger: `/api/docs/` (solo admin). Los errores de negocio devuelven 400 con `{"
   se setea → cae a **whitenoise**). anymail/Mailgun (si no hay creds, console backend).
   SECURE_*, App Insights opcional. Headers de reverse proxy behind-Caddy:
   `USE_X_FORWARDED_HOST`, `SECURE_PROXY_SSL_HEADER`, `CSRF_TRUSTED_ORIGINS` (default
-  `https://operaciones.rehavid.com.co`). `collectfasta` se registra SOLO con Azure Blob
+  `https://rehavidapps.com.co`). `collectfasta` se registra SOLO con Azure Blob
   (fuera de ese bloque rompe collectstatic con whitenoise).
 - `ALLOWED_HOSTS` por env `DJANGO_ALLOWED_HOSTS` (en prod: dominio + ip + nip.io + FQDN Azure).
 
@@ -209,14 +209,17 @@ Internet (443/80)  →  Caddy :443/:80  →  Django (gunicorn :5000, interno)
 - `compose/production/django/Dockerfile`: multi-stage (~263MB), non-root, HEALTHCHECK a
   `/health/`. `start` corre migrate+collectstatic+gunicorn. `entrypoint` espera BD con
   psycopg (sin wait-for-it).
-- `compose/vm/caddy/Caddyfile`: bloque del sitio para `operaciones.rehavid.com.co` + host
-  temporal `rehavid.20-119-43-198.nip.io`. `acme_ca` global fuerza Let's Encrypt **producción**
+- `compose/vm/caddy/Caddyfile`: bloque del sitio para `rehavidapps.com.co` y
+  `www.rehavidapps.com.co`, más el host temporal `rehavid.20-119-43-198.nip.io`.
+  `acme_ca` global fuerza Let's Encrypt **producción**
   (no staging). Bloque `:80` con `route{}` sirve `/health/` por HTTP (pre-DNS) y redirige
   el resto a HTTPS.
 - Env reales en `.envs/.production/` (git-ignored) — hostnames internos `postgres`/`redis`.
+- DNS de producción en GoDaddy: registro A de `@` a `20.119.43.198` y CNAME de `www`
+  a `rehavidapps.com.co`. Caddy mantiene certificados Let's Encrypt de producción para
+  ambos hostnames.
 - DNS temporal gratis vía **nip.io** (resuelve `<ip-con-guiones>.nip.io` sin registro),
-  con cert Let's Encrypt válido. Suficiente para usar la app por HTTPS antes de apuntar
-  el dominio real `operaciones.rehavid.com.co`.
+  con cert Let's Encrypt válido, como ruta de contingencia.
 
 ### Backups
 
@@ -255,8 +258,9 @@ con protección en `sshd_config` + **fail2ban**:
 
 ### URL y entrada de la app
 
-- Producción (dominio real pendiente de DNS): `https://operaciones.rehavid.com.co/`
-- Hoy con DNS temporal: `https://rehavid.20-119-43-198.nip.io/`
+- Producción: `https://rehavidapps.com.co/`
+- Alias público: `https://www.rehavidapps.com.co/`
+- Contingencia temporal: `https://rehavid.20-119-43-198.nip.io/`
 - `/health/` (GET, público): `{"status":"ok"}` con check de BD — lo usan Caddy probe,
   CI health check y monitoreo manual.
 

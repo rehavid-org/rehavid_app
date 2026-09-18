@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed — Production domain (2026-09-18)
+- GoDaddy DNS now points `rehavidapps.com.co` (`@`) to the Azure VM at
+  `20.119.43.198`; `www` remains a CNAME to the apex.
+- Caddy serves both hostnames with production Let's Encrypt certificates.
+- External `/health/` verification passes over HTTPS.
+
 ## [0.1.0] - 2026-07-17
 
 First deployable release of REHAVID Operaciones on a single Azure VM.
@@ -17,7 +23,8 @@ First deployable release of REHAVID Operaciones on a single Azure VM.
   Celery beat, Postgres 16, Redis 7. Postgres and Redis are internal-only
   (never exposed to the internet); only Caddy ports 80/443 and SSH 22 are public.
 - `compose/vm/caddy/Caddyfile`: Caddy reverse proxy with automatic Let's
-  Encrypt HTTPS (production CA, not staging) for `operaciones.rehavid.com.co`.
+  Encrypt HTTPS (production CA, not staging) for the initial host
+  `operaciones.rehavid.com.co` (superseded by `rehavidapps.com.co` on 2026-09-18).
   A `:80` block with `route{}` serves `/health/` over plain HTTP for pre-DNS
   verification and redirects everything else to HTTPS once DNS resolves.
 - `compose/vm/postgres/backup.sh`: daily Postgres backup script — `pg_dump`

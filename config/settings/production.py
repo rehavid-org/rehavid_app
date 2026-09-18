@@ -10,7 +10,10 @@ from .base import env
 # https://docs.djangoproject.com/en/dev/ref/settings/#secret-key
 SECRET_KEY = env("DJANGO_SECRET_KEY")
 # https://docs.djangoproject.com/en/dev/ref/settings/#allowed-hosts
-ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS", default=["operaciones.rehavid.com.co"])
+ALLOWED_HOSTS = env.list(
+    "DJANGO_ALLOWED_HOSTS",
+    default=["rehavidapps.com.co", "www.rehavidapps.com.co"],
+)
 
 # DATABASES
 # ------------------------------------------------------------------------------
@@ -40,7 +43,7 @@ USE_X_FORWARDED_HOST = True
 # https://docs.djangoproject.com/en/dev/ref/settings/#csrf-trusted-origins
 CSRF_TRUSTED_ORIGINS = env.list(
     "DJANGO_CSRF_TRUSTED_ORIGINS",
-    default=["https://operaciones.rehavid.com.co"],
+    default=["https://rehavidapps.com.co", "https://www.rehavidapps.com.co"],
 )
 # https://docs.djangoproject.com/en/dev/ref/settings/#secure-ssl-redirect
 SECURE_SSL_REDIRECT = env.bool("DJANGO_SECURE_SSL_REDIRECT", default=True)
@@ -194,7 +197,7 @@ LOGGING = {
 # -------------------------------------------------------------------------------
 # Tools that generate code samples can use SERVERS to point to the correct domain
 SPECTACULAR_SETTINGS["SERVERS"] = [
-    {"url": "https://operaciones.rehavid.com.co", "description": "Production server"},
+    {"url": "https://rehavidapps.com.co", "description": "Production server"},
 ]
 
 # Application Insights (opcional · telemetría en Azure)

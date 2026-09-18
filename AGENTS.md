@@ -70,8 +70,9 @@ docker compose -f docker-compose.local.yml up -d postgres redis mailpit   # serv
 Topología vigente: **una VM** (`rehavid-vm`, Ubuntu 24.04 LTS, `eastus`) corre todo
 (Caddy + Django + Celery + Postgres + Redis) vía `docker-compose.vm.yml`. Detalles en
 `docs/ARQUITECTURA.md` sección 7 y `docs/DESPLIEGUE_AZURE.md`. URLs:
-- Hoy (DNS temporal gratis): `https://rehavid.20-119-43-198.nip.io/`
-- Definitiva (cuando el cliente apunte el dominio): `https://operaciones.rehavid.com.co/`
+- Producción: `https://rehavidapps.com.co/`
+- Alias: `https://www.rehavidapps.com.co/`
+- Contingencia temporal: `https://rehavid.20-119-43-198.nip.io/`
 
 ## CI/CD
 

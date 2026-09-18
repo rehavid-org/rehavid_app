@@ -26,6 +26,12 @@ class UsuarioCrearForm(UserCreationForm):
     empresa = forms.ModelChoiceField(queryset=Empresa.objects.all(), required=False, empty_label="— Sin empresa —")
 
 
+class EmpresaForm(forms.ModelForm):
+    class Meta:
+        model = Empresa
+        fields = ["nombre", "sector"]
+
+
 class UsuarioEditarForm(forms.ModelForm):
     """Edición + editor de permisos por módulo y permisos extra."""
 

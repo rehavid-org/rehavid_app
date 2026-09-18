@@ -1,0 +1,20 @@
+{% extends "layouts/app.html" %}
+
+{% block title %}Eliminar empresa · REHAVID{% endblock title %}
+{% block miga %}Sistema · Empresas{% endblock miga %}
+{% block titulo %}Eliminar {{ object.nombre }}{% endblock titulo %}
+
+{% block content %}
+  <div class="card-r" style="max-width:560px">
+    <p>¿Eliminar la empresa <strong>{{ object.nombre }}</strong>?</p>
+    <p class="small muted">
+      Si tiene reservas o solicitudes asociadas no se podrá eliminar, para conservar la
+      trazabilidad histórica. Los usuarios vinculados quedarán sin empresa asignada.
+    </p>
+    <form method="post" class="flex mt-2">
+      {% csrf_token %}
+      <button type="submit" class="btn-r peligro">Eliminar empresa</button>
+      <a class="btn-r" href="{% url 'administracion:empresas' %}">Volver sin eliminar</a>
+    </form>
+  </div>
+{% endblock content %}

@@ -1,0 +1,63 @@
+{% extends "layouts/app.html" %}
+
+{% block title %}Empresas · REHAVID{% endblock title %}
+{% block miga %}Sistema · Empresas{% endblock miga %}
+{% block titulo %}Empresas{% endblock titulo %}
+{% block acciones %}
+  <a class="btn-r primario" href="{% url 'administracion:empresa_nueva' %}">+ Nueva empresa</a>
+{% endblock acciones %}
+
+{% block content %}
+  <div class="kpi-grid">
+    <div class="kpi accent">
+      <div class="tag">Empresas registradas</div>
+      <div class="value">{{ empresas|length }}</div>
+      <div class="sub">clientes y empleadoras</div>
+    </div>
+  </div>
+
+  <form class="filtros form-r" method="get">
+    <div class="campo grow">
+      <label for="f-q">Buscar</label>
+      <input id="f-q" type="text" name="q" value="{{ filtros.q }}" placeholder="Nombre de la empresa…" />
+    </div>
+    <button class="btn-r" type="submit">Filtrar</button>
+  </form>
+
+  <div class="tabla-wrap">
+    <table class="tabla-r">
+      <thead>
+        <tr>
+          <th>Empresa</th>
+          <th class="col-secundaria">Sector</th>
+          <th>Usuarios</th>
+          <th class="col-secundaria">Reservas</th>
+          <th class="col-secundaria">Solicitudes</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for e in empresas %}
+          <tr>
+            <td>
+              <strong>{{ e.nombre }}</strong>
+              <div class="small muted solo-movil">{{ e.sector|default:"sin sector" }}</div>
+            </td>
+            <td class="col-secundaria">{{ e.sector|default:"—" }}</td>
+            <td><span class="chip info">{{ e.usuarios_count }}</span></td>
+            <td class="col-secundaria">{{ e.reservas_count }}</td>
+            <td class="col-secundaria">{{ e.solicitudes_count }}</td>
+            <td>
+              <div class="flex" style="gap:4px">
+                <a class="btn-r mini" href="{% url 'administracion:empresa_editar' e.pk %}">Editar</a>
+                <a class="btn-r mini peligro" href="{% url 'administracion:empresa_eliminar' e.pk %}">Eliminar</a>
+              </div>
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="6" class="small muted">No hay empresas registradas todavía.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endblock content %}

@@ -29,6 +29,7 @@ MENU_BY_LEVEL: dict[int, list[str]] = {
         "calendario",
         "alertas",
         "admin",
+        "empresas",
         "auditoria",
         "arquitectura",
     ],

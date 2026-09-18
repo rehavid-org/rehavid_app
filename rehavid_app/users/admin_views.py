@@ -5,11 +5,15 @@ from collections import Counter
 from datetime import timedelta
 
 from django.contrib import messages
+from django.db.models import Count
+from django.db.models import ProtectedError
+from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404
 from django.shortcuts import redirect
 from django.urls import reverse_lazy
 from django.utils import timezone
 from django.views.generic import CreateView
+from django.views.generic import DeleteView
 from django.views.generic import DetailView
 from django.views.generic import ListView
 from django.views.generic import TemplateView
@@ -17,10 +21,12 @@ from django.views.generic import UpdateView
 
 from rehavid_app.auditoria import services as auditoria
 from rehavid_app.auditoria.models import EventoAuditoria
+from rehavid_app.catalogo.models import Empresa
 from rehavid_app.users.permissions import NivelRequeridoMixin
 from rehavid_app.users.permissions import nivel_requerido
 from rehavid_app.xlsx import workbook_response
 
+from .forms_admin import EmpresaForm
 from .forms_admin import UsuarioCrearForm
 from .forms_admin import UsuarioEditarForm
 from .models import User
@@ -196,6 +202,90 @@ class UsuarioFichaView(NivelRequeridoMixin, DetailView):
             solicitudes_total=self.object.solicitudes.count() if hasattr(self.object, "solicitudes") else 0,
         )
         return ctx
+
+
+class EmpresaListView(NivelRequeridoMixin, ListView):
+    nivel_maximo = 1
+    model = Empresa
+    template_name = "administracion/empresas.html"
+    context_object_name = "empresas"
+
+    def get_queryset(self):
+        qs = Empresa.objects.annotate(
+            usuarios_count=Count("usuarios", distinct=True),
+            reservas_count=Count("reservas", distinct=True),
+            solicitudes_count=Count("solicitudes", distinct=True),
+        ).order_by("nombre")
+        if q := self.request.GET.get("q", "").strip():
+            qs = qs.filter(nombre__icontains=q)
+        return qs
+
+    def get_context_data(self, **kwargs):
+        return super().get_context_data(**kwargs) | {
+            "modulo_activo": "empresas",
+            "filtros": self.request.GET,
+        }
+
+
+class EmpresaCreateView(NivelRequeridoMixin, CreateView):
+    nivel_maximo = 1
+    model = Empresa
+    form_class = EmpresaForm
+    template_name = "administracion/empresa_form.html"
+    success_url = reverse_lazy("administracion:empresas")
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        auditoria.registrar(self.request.user, "crear_empresa", "admin", self.object.nombre)
+        messages.success(self.request, f"Empresa {self.object.nombre} creada")
+        return response
+
+    def get_context_data(self, **kwargs):
+        return super().get_context_data(**kwargs) | {"modulo_activo": "empresas", "titulo": "Nueva empresa"}
+
+
+class EmpresaUpdateView(NivelRequeridoMixin, UpdateView):
+    nivel_maximo = 1
+    model = Empresa
+    form_class = EmpresaForm
+    template_name = "administracion/empresa_form.html"
+    success_url = reverse_lazy("administracion:empresas")
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        auditoria.registrar(self.request.user, "editar_empresa", "admin", self.object.nombre)
+        messages.success(self.request, f"Empresa {self.object.nombre} actualizada")
+        return response
+
+    def get_context_data(self, **kwargs):
+        return super().get_context_data(**kwargs) | {
+            "modulo_activo": "empresas",
+            "titulo": f"Editar {self.object.nombre}",
+        }
+
+
+class EmpresaDeleteView(NivelRequeridoMixin, DeleteView):
+    nivel_maximo = 1
+    model = Empresa
+    template_name = "administracion/empresa_eliminar.html"
+    success_url = reverse_lazy("administracion:empresas")
+
+    def form_valid(self, form):
+        nombre = self.object.nombre
+        try:
+            response = super().form_valid(form)
+        except ProtectedError:
+            messages.error(
+                self.request,
+                f"No se puede eliminar {nombre}: tiene reservas o solicitudes asociadas.",
+            )
+            return HttpResponseRedirect(self.get_success_url())
+        auditoria.registrar(self.request.user, "eliminar_empresa", "admin", nombre)
+        messages.success(self.request, f"Empresa {nombre} eliminada")
+        return response
+
+    def get_context_data(self, **kwargs):
+        return super().get_context_data(**kwargs) | {"modulo_activo": "empresas"}
 
 
 @nivel_requerido(1)

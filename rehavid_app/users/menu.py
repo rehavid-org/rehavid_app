@@ -35,6 +35,7 @@ MODULOS: dict[str, tuple[str, str, str]] = {
     "calendario": ("Calendario", "analitica:calendario", "Operación"),
     "alertas": ("Alertas logísticas", "alertas:index", "Operación"),
     "admin": ("Administración", "administracion:usuarios", "Sistema"),
+    "empresas": ("Empresas", "administracion:empresas", "Sistema"),
     "auditoria": ("Auditoría", "auditoria:lista", "Sistema"),
     "arquitectura": ("Arquitectura macro-app", "administracion:arquitectura", "Sistema"),
     "portal": ("Inicio", "portal:inicio", "Portal"),

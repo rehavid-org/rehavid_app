@@ -1,0 +1,28 @@
+{% extends "layouts/app.html" %}
+
+{% block title %}{{ titulo }} · REHAVID{% endblock title %}
+{% block miga %}Sistema · Empresas{% endblock miga %}
+{% block titulo %}{{ titulo }}{% endblock titulo %}
+{% block acciones %}
+  <a class="btn-r" href="{% url 'administracion:empresas' %}">← Volver a empresas</a>
+{% endblock acciones %}
+
+{% block content %}
+  <form class="card-r form-r" method="post" style="max-width:560px">
+    {% csrf_token %}
+    {% if form.non_field_errors %}<div class="errores-form">{{ form.non_field_errors }}</div>{% endif %}
+    <div class="form-grid">
+      {% for campo in form %}
+        <div class="campo">
+          <label for="{{ campo.id_for_label }}">{{ campo.label }}</label>
+          {{ campo }}
+          {% if campo.errors %}<div class="error">{{ campo.errors.0 }}</div>{% endif %}
+        </div>
+      {% endfor %}
+    </div>
+    <div class="flex mt-2">
+      <button class="btn-r primario" type="submit">Guardar empresa</button>
+      <a class="btn-r" href="{% url 'administracion:empresas' %}">Descartar</a>
+    </div>
+  </form>
+{% endblock content %}

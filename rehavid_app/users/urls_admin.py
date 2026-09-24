@@ -12,6 +12,7 @@ urlpatterns = [
     path("usuarios/<int:pk>/editar/", admin_views.UsuarioUpdateView.as_view(), name="usuario_editar"),
     path("usuarios/<int:pk>/ficha/", admin_views.UsuarioFichaView.as_view(), name="usuario_ficha"),
     path("usuarios/<int:pk>/toggle/", require_POST(admin_views.toggle_activo_view), name="usuario_toggle"),
+    path("empresas/export/", admin_views.export_empresas_view, name="empresas_export"),
     path("empresas/", admin_views.EmpresaListView.as_view(), name="empresas"),
     path("empresas/nuevo/", admin_views.EmpresaCreateView.as_view(), name="empresa_nueva"),
     path("empresas/<int:pk>/editar/", admin_views.EmpresaUpdateView.as_view(), name="empresa_editar"),

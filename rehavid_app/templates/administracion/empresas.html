@@ -4,6 +4,7 @@
 {% block miga %}Sistema · Empresas{% endblock miga %}
 {% block titulo %}Empresas{% endblock titulo %}
 {% block acciones %}
+  <a class="btn-r" href="{% url 'administracion:empresas_export' %}">Exportar Excel</a>
   <a class="btn-r primario" href="{% url 'administracion:empresa_nueva' %}">+ Nueva empresa</a>
 {% endblock acciones %}
 

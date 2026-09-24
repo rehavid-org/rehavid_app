@@ -320,3 +320,22 @@ def export_usuarios_view(request):
         ["Correo", "Nombre", "Nivel", "Empresa", "Rol", "Activo", "Último acceso"],
         filas,
     )
+
+
+@nivel_requerido(1)
+def export_empresas_view(request):
+    filas = [
+        [e.nombre, e.sector, e.usuarios_count, e.reservas_count, e.solicitudes_count]
+        for e in Empresa.objects.annotate(
+            usuarios_count=Count("usuarios", distinct=True),
+            reservas_count=Count("reservas", distinct=True),
+            solicitudes_count=Count("solicitudes", distinct=True),
+        ).order_by("nombre")
+    ]
+    auditoria.registrar(request.user, "export_empresas", "admin", f"{len(filas)} filas")
+    return workbook_response(
+        "empresas_rehavid.xlsx",
+        "Empresas",
+        ["Empresa", "Sector", "Usuarios", "Reservas", "Solicitudes"],
+        filas,
+    )
